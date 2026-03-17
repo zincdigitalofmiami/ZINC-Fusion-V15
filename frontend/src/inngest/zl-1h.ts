@@ -7,6 +7,28 @@ import dbPool from "@/lib/db";
 
 const pool = dbPool;
 
+// CME ZL session: Sun 19:00 CT → Fri 13:20 CT.  Guard uses 14:00 CT
+// close so the :05 cron catches the final 13:00-13:20 bar.
+const SESSION_OPEN_CT = 19 * 60;       // 19:00 CT in minutes
+const SESSION_CLOSE_GUARD_CT = 14 * 60; // 14:00 CT (40-min buffer past 13:20)
+
+function isWithinCmeSession(now = new Date()): boolean {
+  const ct = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Chicago" }),
+  );
+  const day = ct.getDay(); // 0=Sun, 6=Sat
+  const minutes = ct.getHours() * 60 + ct.getMinutes();
+
+  if (day === 6) return false; // Saturday — closed all day
+  if (day === 0) return minutes >= SESSION_OPEN_CT; // Sunday opens 19:00 CT
+  if (day >= 1 && day <= 4) {
+    // Mon-Thu: open overnight until 13:20, re-opens 19:00.
+    return minutes <= SESSION_CLOSE_GUARD_CT || minutes >= SESSION_OPEN_CT;
+  }
+  // Friday: open through 13:20 only (no evening reopen).
+  return minutes <= SESSION_CLOSE_GUARD_CT;
+}
+
 /** How far back to look when the table already has data. */
 const BACKFILL_WINDOW_DAYS = 3;
 /** Cold-start window when the table is empty. */
@@ -66,6 +88,12 @@ export const zl1h = inngest.createFunction(
   },
   { cron: "5 * * * *" },
   async ({ step, logger }) => {
+    // Skip outside CME session hours (Sat all day, Sun before 19:00 CT,
+    // Fri after ~14:00 CT).  Saves Databento API calls.
+    if (!isWithinCmeSession()) {
+      return { status: "skipped", message: "Outside CME session window" };
+    }
+
     // Compute fetch window: start from last stored bar (minus overlap), end at NOW.
     const { startStr, endStr } = await step.run("compute-window", async () => {
       const client = await pool.connect();
