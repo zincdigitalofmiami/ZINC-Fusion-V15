@@ -17,31 +17,29 @@ describe("api/zl/chart compatibility route", () => {
 
   it("passes through rollup freshness/degraded metadata from price-1d", async () => {
     getPrice1dMock.mockResolvedValue(
-      NextResponse.json(
-        {
-          symbol: "ZL",
-          interval: "1d",
-          count: 1,
-          live_rollup: true,
-          live_rollup_source_table: "analytics.price_1h",
-          live_rollup_latest_intraday_ts: "2026-03-16T14:00:00.000Z",
-          live_rollup_state: "stale",
-          live_rollup_degraded: true,
-          live_rollup_age_seconds: 1980,
-          live_rollup_error: "rollup timeout",
-          data: [
-            {
-              timestamp: "2026-03-16",
-              open: 66.2,
-              high: 66.9,
-              low: 66.1,
-              close: 66.8,
-              volume: 5210,
-            },
-          ],
-        },
-        { headers: { "Cache-Control": "public, s-maxage=60" } },
-      ),
+      NextResponse.json({
+        symbol: "ZL",
+        interval: "1d",
+        count: 1,
+        days: 90,
+        live_rollup: true,
+        live_rollup_source_table: "analytics.price_1h",
+        live_rollup_latest_intraday_ts: "2026-03-16T14:00:00.000Z",
+        live_rollup_state: "stale",
+        live_rollup_degraded: true,
+        live_rollup_age_seconds: 1980,
+        live_rollup_error: "rollup timeout",
+        data: [
+          {
+            timestamp: "2026-03-16",
+            open: 66.2,
+            high: 66.9,
+            low: 66.1,
+            close: 66.8,
+            volume: 5210,
+          },
+        ],
+      }) as Awaited<ReturnType<typeof getPrice1d>>,
     );
 
     const response = await GET(
