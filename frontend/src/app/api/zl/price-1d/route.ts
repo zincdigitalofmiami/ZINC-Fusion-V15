@@ -193,7 +193,7 @@ function computeLiveRollupState(
   }
 
   const ageSeconds = computeAgeSeconds(latestTs);
-  if (sourceTable !== "analytics.price_1m") {
+  if (sourceTable !== "analytics.price_1h") {
     return { state: "fallback", degraded: true, ageSeconds };
   }
 

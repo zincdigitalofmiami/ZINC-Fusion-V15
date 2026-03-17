@@ -23,7 +23,7 @@ describe("api/zl/chart compatibility route", () => {
           interval: "1d",
           count: 1,
           live_rollup: true,
-          live_rollup_source_table: "analytics.price_1m",
+          live_rollup_source_table: "analytics.price_1h",
           live_rollup_latest_intraday_ts: "2026-03-16T14:00:00.000Z",
           live_rollup_state: "stale",
           live_rollup_degraded: true,
@@ -52,7 +52,7 @@ describe("api/zl/chart compatibility route", () => {
     expect(response.status).toBe(200);
     expect(payload.symbol).toBe("ZL");
     expect(payload.live_rollup).toBe(true);
-    expect(payload.live_rollup_source_table).toBe("analytics.price_1m");
+    expect(payload.live_rollup_source_table).toBe("analytics.price_1h");
     expect(payload.live_rollup_state).toBe("stale");
     expect(payload.live_rollup_degraded).toBe(true);
     expect(payload.live_rollup_age_seconds).toBe(1980);

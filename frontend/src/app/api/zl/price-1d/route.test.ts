@@ -25,7 +25,7 @@ describe("api/zl/price-1d live rollup contract", () => {
     vi.useRealTimers();
   });
 
-  it("prefers healthy same-session 1m rollup over latest_price fallback", async () => {
+  it("prefers healthy same-session 1h rollup over latest_price fallback", async () => {
     queryMock.mockImplementation(async (sql: string) => {
       if (sql.includes("FROM analytics.price_1d") && sql.includes("event_date as timestamp")) {
         return [
@@ -40,7 +40,7 @@ describe("api/zl/price-1d live rollup contract", () => {
           },
         ];
       }
-      if (sql.includes("FROM analytics.price_1m")) {
+      if (sql.includes("FROM analytics.price_1h")) {
         expect(sql).toContain("GROUP BY sb.trade_date");
         return [
           {
@@ -50,14 +50,14 @@ describe("api/zl/price-1d live rollup contract", () => {
             low: 66.1,
             close: 66.9,
             volume: 7424,
-            source: "intraday_rollup_1m",
+            source: "intraday_rollup_1h",
             latest_ts: "2026-03-16T14:30:00.000Z",
             bar_count: 220,
           },
         ];
       }
       if (sql.includes("FROM analytics.latest_price")) {
-        throw new Error("latest_price fallback should not be used when 1m rollup exists");
+        throw new Error("latest_price fallback should not be used when 1h rollup exists");
       }
       throw new Error(`Unexpected SQL: ${sql}`);
     });
@@ -66,11 +66,11 @@ describe("api/zl/price-1d live rollup contract", () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
-    expect(payload.live_rollup_source_table).toBe("analytics.price_1m");
+    expect(payload.live_rollup_source_table).toBe("analytics.price_1h");
     expect(payload.live_rollup_state).toBe("live");
     expect(payload.live_rollup_degraded).toBe(false);
     expect(payload.live_rollup_error).toBeNull();
-    expect(payload.data[payload.data.length - 1].source).toBe("intraday_rollup_1m");
+    expect(payload.data[payload.data.length - 1].source).toBe("intraday_rollup_1h");
   });
 
   it("marks stale intraday rollup as degraded when age breaches threshold", async () => {
@@ -78,7 +78,7 @@ describe("api/zl/price-1d live rollup contract", () => {
       if (sql.includes("FROM analytics.price_1d") && sql.includes("event_date as timestamp")) {
         return [];
       }
-      if (sql.includes("FROM analytics.price_1m")) {
+      if (sql.includes("FROM analytics.price_1h")) {
         expect(sql).toContain("GROUP BY sb.trade_date");
         return [
           {
@@ -88,7 +88,7 @@ describe("api/zl/price-1d live rollup contract", () => {
             low: 66.1,
             close: 66.9,
             volume: 7424,
-            source: "intraday_rollup_1m",
+            source: "intraday_rollup_1h",
             latest_ts: "2026-03-16T14:00:00.000Z",
             bar_count: 120,
           },
@@ -110,12 +110,12 @@ describe("api/zl/price-1d live rollup contract", () => {
     expect(payload.live_rollup_error).toBeNull();
   });
 
-  it("falls back to latest_price with observable error when 1m rollup query fails", async () => {
+  it("falls back to latest_price with observable error when 1h rollup query fails", async () => {
     queryMock.mockImplementation(async (sql: string) => {
       if (sql.includes("FROM analytics.price_1d") && sql.includes("event_date as timestamp")) {
         return [];
       }
-      if (sql.includes("FROM analytics.price_1m")) {
+      if (sql.includes("FROM analytics.price_1h")) {
         expect(sql).toContain("GROUP BY sb.trade_date");
         throw new Error("rollup exploded");
       }
