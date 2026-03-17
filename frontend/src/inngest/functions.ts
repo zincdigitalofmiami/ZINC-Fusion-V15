@@ -1,5 +1,6 @@
 export { zlDaily } from "./zl-daily";
 export { zlLive1m, zlLive1d } from "./zl-live";
+export { zl1h } from "./zl-1h";
 export {
   fredDailyFed,
   fredDailyFx,

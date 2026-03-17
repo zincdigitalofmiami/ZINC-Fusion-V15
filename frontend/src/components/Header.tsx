@@ -28,7 +28,7 @@ export default function Header() {
         <Link href="/" className="logo">
           <Image
             src="/logo.svg"
-            alt="ZINC FUSION"
+            alt="USO Fusion"
             width={200}
             height={50}
             priority

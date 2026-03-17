@@ -99,7 +99,7 @@ const PIVOT_COLORS: Record<PivotTimeframe, string> = {
 };
 // Temporary kill-switch for Target Zones on the candlestick chart.
 // Re-enable by flipping this back to true after the forecast freshness issues are fixed.
-const ENABLE_FORECAST_OVERLAY = false;
+const ENABLE_FORECAST_OVERLAY = true;
 
 export function LightweightZlCandlestickChart({
   height = "70vh",

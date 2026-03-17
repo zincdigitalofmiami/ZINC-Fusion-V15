@@ -4,6 +4,7 @@ import {
   zlDaily,
   zlLive1m,
   zlLive1d,
+  zl1h,
   fredDailyFed,
   fredDailyFx,
   fredDailyEnergy,
@@ -150,6 +151,7 @@ export const { GET, POST, PUT } = serve({
     zlDaily,
     zlLive1m,
     zlLive1d,
+    zl1h,
     // FRED macro series
     fredDailyFed,
     fredDailyFx,

@@ -112,7 +112,7 @@ async function getSessionLiveDailyRollup(): Promise<RollupAttempt> {
       `WITH ${zlSessionContextCte()}
         , session_bars AS (
           SELECT timestamp, open, high, low, close, COALESCE(volume, 0) AS volume
-          FROM analytics.price_1m
+          FROM analytics.price_1h
           CROSS JOIN session_bounds sb
           WHERE timestamp >= sb.session_start_utc
             AND timestamp <= sb.session_cutoff_utc
@@ -126,7 +126,7 @@ async function getSessionLiveDailyRollup(): Promise<RollupAttempt> {
           MIN(session_bars.low) AS low,
           (ARRAY_AGG(session_bars.close ORDER BY session_bars.timestamp DESC))[1] AS close,
           SUM(session_bars.volume)::bigint AS volume,
-          'intraday_rollup_1m'::text AS source,
+          'intraday_rollup_1h'::text AS source,
           MAX(session_bars.timestamp) AS latest_ts,
           COUNT(session_bars.timestamp)::int AS bar_count
         FROM session_bars
@@ -156,7 +156,7 @@ async function getSessionLiveDailyRollup(): Promise<RollupAttempt> {
         volume: row.volume ?? 0,
         source: row.source,
       },
-      sourceTable: "analytics.price_1m",
+      sourceTable: "analytics.price_1h",
       latestTs: row.latest_ts ? new Date(row.latest_ts).toISOString() : null,
       error: null,
     };
