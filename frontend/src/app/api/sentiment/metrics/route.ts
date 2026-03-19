@@ -747,7 +747,7 @@ export async function GET() {
             ),
             safe(
               query<ConfirmationInputs>(
-                `WITH window AS (
+                `WITH date_window AS (
                    SELECT ($1::date - INTERVAL '6 days')::date AS start_date,
                           $1::date AS end_date
                  ),
@@ -756,7 +756,7 @@ export async function GET() {
                           COALESCE(headline, '')                     AS headline,
                           ''::text                                   AS summary,
                           COALESCE(content, '')                      AS content
-                   FROM alt.policy_news_event, window w
+                   FROM alt.policy_news_event, date_window w
                    WHERE event_date >= w.start_date AND event_date <= w.end_date
 
                    UNION ALL
@@ -765,20 +765,20 @@ export async function GET() {
                           COALESCE(headline, '')                     AS headline,
                           COALESCE(summary, '')                      AS summary,
                           COALESCE(content, '')                      AS content
-                   FROM alt.econ_news_event, window w
+                   FROM alt.econ_news_event, date_window w
                    WHERE event_date >= w.start_date AND event_date <= w.end_date
                  ),
                  market_rows AS (
                    SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
                           COALESCE(headline, '')                     AS headline,
                           COALESCE(content, '')                      AS content
-                   FROM econ.news_event, window w
+                   FROM econ.news_event, date_window w
                    WHERE event_date >= w.start_date AND event_date <= w.end_date
                  ),
                  regulatory_rows AS (
                    SELECT COALESCE(specialist_tags, ARRAY[]::text[]) AS specialist_tags,
                           COALESCE(title, '')                        AS title
-                   FROM alt.legislation_1d, window w
+                   FROM alt.legislation_1d, date_window w
                    WHERE event_date >= w.start_date
                      AND event_date <= w.end_date
                      AND document_type <> 'Presidential Document'
