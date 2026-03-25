@@ -69,11 +69,13 @@ interface FearGreedData {
   interpretation: string;
   components: {
     vix: FearGreedComponent;
+    oil: FearGreedComponent;
+    uncertainty: FearGreedComponent;
+    inflation: FearGreedComponent;
+    iranWar: FearGreedComponent;
+    news: FearGreedComponent;
     positioning: FearGreedComponent;
     sentiment: FearGreedComponent;
-    crush: FearGreedComponent;
-    volatility: FearGreedComponent;
-    trumpEffect: FearGreedComponent;
   };
 }
 
@@ -593,6 +595,11 @@ export default function SentimentPage() {
                   {(
                     [
                       { label: "Market Stress", data: fg.components.vix },
+                      { label: "Oil Shock", data: fg.components.oil },
+                      { label: "Uncertainty", data: fg.components.uncertainty },
+                      { label: "Inflation", data: fg.components.inflation },
+                      { label: "Iran War", data: fg.components.iranWar },
+                      { label: "Macro News", data: fg.components.news },
                       {
                         label: "Fund Positioning",
                         data: fg.components.positioning,
@@ -600,15 +607,6 @@ export default function SentimentPage() {
                       {
                         label: "News Sentiment",
                         data: fg.components.sentiment,
-                      },
-                      { label: "Crush Margins", data: fg.components.crush },
-                      {
-                        label: "Price Swings",
-                        data: fg.components.volatility,
-                      },
-                      {
-                        label: "Policy Impact",
-                        data: fg.components.trumpEffect,
                       },
                     ] as const
                   ).map((c) => (
@@ -658,7 +656,7 @@ export default function SentimentPage() {
                 </div>
                 <div className="flex items-baseline gap-4">
                   <span className="text-5xl md:text-6xl font-bold text-white font-mono">
-                    ${metrics.price.close.toFixed(2)}
+                    ${metrics.price.close != null ? metrics.price.close.toFixed(2) : "—"}
                   </span>
                   {metrics.as_of && (
                     <span className="text-sm text-slate-500">
@@ -674,8 +672,8 @@ export default function SentimentPage() {
                       Session Range
                     </div>
                     <div className="text-lg font-mono text-slate-300">
-                      ${metrics.price.low.toFixed(2)} — $
-                      {metrics.price.high.toFixed(2)}
+                      ${metrics.price.low != null ? metrics.price.low.toFixed(2) : "—"} — $
+                      {metrics.price.high != null ? metrics.price.high.toFixed(2) : "—"}
                     </div>
                     {metrics.price.volume != null && (
                       <div className="text-xs text-slate-500 mt-0.5">

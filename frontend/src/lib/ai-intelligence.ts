@@ -1,10 +1,10 @@
 /**
  * AI-Powered Market Intelligence for ZL (Soybean Oil)
- * Uses Claude OPUS 4.5 for comprehensive cross-driver synthesis
+ * Uses free OpenRouter GPT-OSS-120B for comprehensive cross-driver synthesis
  *
  * MODEL ROUTING (LOCKED):
- * - This file uses MODEL_BALANCED_CONDITIONS (Opus 4.5) for comprehensive synthesis
- * - ai-driver-intel.ts uses MODEL_DRIVER_INTEL (Sonnet 4.5) for per-card analysis
+ * - This file uses MODEL_BALANCED_CONDITIONS (openai/gpt-oss-120b:free) for comprehensive synthesis
+ * - ai-driver-intel.ts uses MODEL_DRIVER_INTEL (openai/gpt-oss-120b:free) for per-card analysis
  *
  * FRESHNESS REQUIREMENT:
  * - All responses must echo asOfDate
@@ -43,6 +43,11 @@ export interface MarketData {
   // Tariff/Policy
   tpu: number;
   emv: number | null;
+  inflationExpectation?: number;
+  iranWarNewsCount?: number;
+  clPrice?: number;
+  clChange5d?: number;
+  clChange20d?: number;
 
   // Rule-based scores (already calculated)
   scores: {
@@ -50,6 +55,7 @@ export interface MarketData {
     crush: number;
     china: number;
     tariff: number;
+    energy: number;
   };
 
   // ZL Price Data (NEW - for comprehensive reports)
@@ -102,17 +108,19 @@ CRITICAL CONTEXT:
 KEY RELATIONSHIPS YOU UNDERSTAND:
 1. VIX/OVX → ZL: High VIX = risk-off = fund liquidation = ZL selling pressure. OVX matters because soybean oil is biodiesel feedstock. Correlation typically 0.3-0.5.
 2. Crush Margins → ZL: Tight margins = processor slowdowns = less oil supply. Strong margins = max crush = heavy oil supply.
-3. China/CNY → ZL: China is #1 soy importer. Weak CNY = Brazil more competitive vs US. Trade war = export demand cliff. Negative correlation with USD strength.
-4. Tariff/TPU → ZL: Trade Policy Uncertainty from Baker-Bloom-Davis. High TPU = soy export risk.
+3. China/CNY → ZL: China is #1 soy importer. Weak CNY and slower growth reduce import demand and pressure export channels.
+4. Macro Threat → ZL: Iran war, oil spikes, inflation pressure, uncertainty index, VIX, and news velocity combine into a single risk regime.
 5. Biofuels: 45Z tax credit, RVO volumes, biodiesel/renewable diesel demand drives 50%+ of domestic soybean oil consumption.
 6. Substitutes: Palm oil (~0.7-0.8 correlation), canola (~0.6-0.8 correlation) compete as biofuel feedstocks.
+7. Oil Shock Path: Iran/Hormuz disruption → crude supply risk → higher diesel values → stronger soybean oil pull for fuel.
 
 THRESHOLDS YOU KNOW:
 - VIX: <15 calm, 15-20 normal, 20-25 elevated, 25-30 high, 30-40 fear, >40 panic
 - OVX: <25 calm, 25-35 normal, 35-50 elevated, >50 high
 - Board Crush: <USD 1.00 crisis, USD 1.00-1.25 stressed, USD 1.25-1.50 tight, USD 1.50-1.75 neutral, USD 1.75-2.00 healthy, >USD 2.00 strong
 - CNY: 7.00 strong, 7.15 normal, 7.30 weak, 7.45 stress, >7.60 crisis
-- TPU: <100 calm, 100-200 normal, 200-400 elevated, >400 high
+- Uncertainty Index: <100 calm, 100-200 normal, 200-400 elevated, >400 high
+- Crude 5d move: >+5% = shock, >+10% = crisis
 
 OUTPUT FORMAT:
 You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
@@ -126,7 +134,7 @@ You MUST respond with valid JSON only. No markdown, no explanation outside JSON.
   "comprehensiveReport": {
     "tldr": "Quick summary paragraph covering: current price level, short-term outlook (1 week to 1 quarter) with direction and reasoning, longer-term view (6 months+) with key risks/supports, and forecasted percentage moves by timeframe. Be specific with numbers.",
     "currentSnapshot": "Current ZL price level, recent session action, and where it sits in recent range. Include specific price references.",
-    "keyDrivers": "Detailed breakdown of: (1) Biofuel Use & Legislation (45Z, RVOs, biodiesel demand), (2) Weather & Supply (US and South America), (3) Macro & Correlations (VIX relationship, Fed rates, FX impacts, China relations), (4) Trade Policy & Tariffs (current tariff levels, impact on competitiveness).",
+    "keyDrivers": "Detailed breakdown of: (1) Biofuel Use & Legislation (45Z, RVOs, biodiesel demand), (2) Weather & Supply (US and South America), (3) Macro & Correlations (VIX, inflation, uncertainty, FX/China), (4) Geopolitical/Oil Shock (Iran-war headlines, crude moves, energy transmission to ZL).",
     "forecasts": "Time-horizon forecasts: 1 Week (+X-Y% move to ~XX $/lb - reasoning), 1 Month (+X-Y% to ~XX $/lb), 1 Quarter (+X-Y% to ~XX $/lb if conditions hold), 6 Months (direction and range with reasoning).",
     "correlations": "Summary of key correlations: Palm oil substitution (~0.7-0.8), Canola (~0.6-0.8), China/Brazil/Argentina (negative for US), VIX (positive), Fed rates/USD (negative). Include specific correlation estimates where relevant.",
     "technicalOutlook": "Support and resistance levels, trend direction, potential breakout/breakdown scenarios, and key levels to watch."
@@ -187,17 +195,23 @@ CRUSH ECONOMICS:
 - Board Crush: $${data.boardCrush.toFixed(2)}/bu${data.oilShare !== null ? ` | Oil Share: ${(data.oilShare * 100).toFixed(1)}%` : ""}
 - Pre-calculated pressure score: ${data.scores.crush}/100
 
-CHINA/TRADE:
+CHINA:
 - CNY/USD: ${data.cnyRate.toFixed(2)}
 - FXI 20d change: ${(data.fxiChange20d * 100).toFixed(1)}%${data.bdryChange20d !== null ? ` | BDRY 20d: ${(data.bdryChange20d * 100).toFixed(1)}%` : ""}
 - Pre-calculated tension score: ${data.scores.china}/100
 
-TARIFF/POLICY:
-- Trade Policy Uncertainty (TPU): ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV Trade: ${data.emv.toFixed(0)}` : ""}
+ENERGY:
+- Crude Oil (CL): ${data.clPrice !== undefined ? `$${data.clPrice.toFixed(2)}` : "N/A"}${data.clChange5d !== undefined ? ` | 5d: ${(data.clChange5d * 100).toFixed(1)}%` : ""}${data.ovx !== null ? ` | OVX: ${data.ovx.toFixed(1)}` : ""}
+- Pre-calculated stress score: ${data.scores.energy}/100
+
+MACRO THREAT:
+- Uncertainty Index: ${data.tpu.toFixed(0)}${data.emv !== null ? ` | EMV: ${data.emv.toFixed(0)}` : ""}
+- Inflation Expectation (T5YIE): ${data.inflationExpectation !== undefined ? `${data.inflationExpectation.toFixed(2)}%` : "N/A"}
+- Iran/War headline count (7d): ${data.iranWarNewsCount ?? 0}
 - Pre-calculated threat score: ${data.scores.tariff}/100
 ${newsSection}
 
-AVERAGE PRESSURE: ${((data.scores.vix + data.scores.crush + data.scores.china + data.scores.tariff) / 4).toFixed(1)}/100
+AVERAGE PRESSURE: ${((data.scores.vix + data.scores.crush + data.scores.china + data.scores.tariff + data.scores.energy) / 5).toFixed(1)}/100
 
 CRITICAL INSTRUCTIONS:
 1. Base your analysis ONLY on the data above. Do not invent numbers.
@@ -251,13 +265,15 @@ export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
     (data.scores.vix +
       data.scores.crush +
       data.scores.china +
-      data.scores.tariff) /
-    4;
+      data.scores.tariff +
+      data.scores.energy) /
+    5;
   const highPressureCount = [
     data.scores.vix,
     data.scores.crush,
     data.scores.china,
     data.scores.tariff,
+    data.scores.energy,
   ].filter((s) => s >= 65).length;
 
   let zlOutlook: "BULLISH" | "NEUTRAL" | "CAUTIOUS" | "BEARISH";
@@ -289,7 +305,11 @@ export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
   if (data.scores.china >= 65)
     keyRisks.push(`China tension elevated - CNY at ${data.cnyRate.toFixed(2)}`);
   if (data.scores.tariff >= 65)
-    keyRisks.push(`Tariff risk high - TPU at ${data.tpu.toFixed(0)}`);
+    keyRisks.push(`Macro threat high - uncertainty at ${data.tpu.toFixed(0)}`);
+  if (data.scores.energy >= 65)
+    keyRisks.push(
+      `Energy shock risk elevated${data.clPrice !== undefined ? ` - CL at $${data.clPrice.toFixed(2)}` : ""}`,
+    );
 
   if (data.scores.vix <= 35)
     keySupports.push(`Low VIX at ${data.vix.toFixed(1)} - stable conditions`);
@@ -299,7 +319,8 @@ export function generateFallbackIntelligence(data: MarketData): AIIntelligence {
     );
   if (data.scores.china <= 35)
     keySupports.push(`Constructive China trade flow`);
-  if (data.scores.tariff <= 35) keySupports.push(`Trade policy calm`);
+  if (data.scores.tariff <= 35) keySupports.push(`Macro threat contained`);
+  if (data.scores.energy <= 35) keySupports.push(`Energy channel calm`);
 
   return {
     headline,

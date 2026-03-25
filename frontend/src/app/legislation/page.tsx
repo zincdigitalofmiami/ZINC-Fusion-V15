@@ -114,9 +114,9 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
         <div className="text-xs uppercase tracking-widest text-slate-500">
           Threat Level
         </div>
-        {regime.freshness?.tpu_date && (
+        {regime.freshness?.uncertainty_date && (
           <span className="text-[9px] text-slate-600 font-mono">
-            TPU as of {regime.freshness.tpu_date}
+            Uncertainty as of {regime.freshness.uncertainty_date}
           </span>
         )}
       </div>
@@ -141,11 +141,12 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
           <div className="text-[10px] text-slate-600 uppercase tracking-wider font-bold mb-2">
             Score Components
           </div>
-          <ComponentBar label="TPU (35%)" value={tc.tpu_score} detail={`Index: ${tc.tpu_value}`} />
-          <ComponentBar label="EMV (20%)" value={tc.emv_score} detail={tc.emv_value ? `Index: ${tc.emv_value}` : "N/A"} />
-          <ComponentBar label="Legislation (10%)" value={50 + tc.legislation_adj} detail={`${tc.legislation_count} filings/14d`} />
-          <ComponentBar label="Specialist (15%)" value={50 + tc.specialist_adj} detail={tc.specialist_signal !== null ? `Signal: ${tc.specialist_signal.toFixed(2)}` : "N/A"} />
-          <ComponentBar label="News (20%)" value={50 + tc.soy_tariff_news_adj} detail={`${tc.soy_tariff_news_count} articles/7d`} />
+          <ComponentBar label="Uncertainty (24%)" value={tc.uncertainty_score} detail={`Index: ${tc.uncertainty_value}`} />
+          <ComponentBar label="VIX (20%)" value={tc.vix_score} detail={tc.vix_value !== null ? `VIX: ${tc.vix_value}` : "N/A"} />
+          <ComponentBar label="Oil (18%)" value={tc.oil_score} detail={tc.oil_change_5d !== null ? `5d: ${(tc.oil_change_5d * 100).toFixed(1)}%` : "N/A"} />
+          <ComponentBar label="Inflation (14%)" value={tc.inflation_score} detail={tc.inflation_value !== null ? `T5YIE: ${tc.inflation_value.toFixed(2)}%` : "N/A"} />
+          <ComponentBar label="Iran/War (14%)" value={tc.iran_war_news_score} detail={`${tc.iran_war_news_count} articles/7d`} />
+          <ComponentBar label="Macro News (10%)" value={tc.macro_news_score} detail={`${tc.macro_news_count} articles/7d`} />
         </div>
       )}
     </div>
@@ -405,10 +406,13 @@ export default async function PolicyPage() {
 
   const defaultRegime: RegimeState = {
     score: 35,
-    label: "Background Noise",
+    label: "Watch",
     components: {
-      tpu: 100,
-      emv: 0,
+      uncertainty_index: 100,
+      vix: 20,
+      oil_change_5d: 0,
+      inflation_expectation: 2.3,
+      iran_war_news: 0,
       news_velocity: 0,
       legis_velocity: 0,
     },
@@ -484,8 +488,12 @@ export default async function PolicyPage() {
       score: regime.score,
       label: regime.label,
       headline: regime.headline,
-      tpu: regime.components.tpu,
-      emv: regime.components.emv,
+      uncertaintyIndex: regime.components.uncertainty_index,
+      vix: regime.components.vix,
+      oilChange5d: regime.components.oil_change_5d,
+      inflationExpectation: regime.components.inflation_expectation,
+      iranWarNews: regime.components.iran_war_news,
+      newsVelocity: regime.components.news_velocity,
     },
     metrics: {
       velocity: currentMetric?.velocity ?? null,
@@ -531,7 +539,7 @@ export default async function PolicyPage() {
   }));
 
   const briefingVersion = [
-    regime.freshness?.tpu_date ?? "na",
+    regime.freshness?.uncertainty_date ?? "na",
     currentMetric?.date ?? "na",
     legislation[0]?.event_date ?? "na",
     executive[0]?.event_date ?? "na",
@@ -563,7 +571,7 @@ export default async function PolicyPage() {
           <RegimeBadge regime={regime} />
         </header>
 
-        {/* AI BRIEFING — Claude-powered policy analysis */}
+        {/* AI BRIEFING — OpenRouter free-model policy analysis */}
         <PolicyAiBriefing {...briefingProps} dataVersion={briefingVersion} />
 
         {/* EVENT PULSE INDICATOR — shows when news velocity is elevated */}
@@ -642,11 +650,11 @@ export default async function PolicyPage() {
             );
           })()}
           <MetricCard
-            title="Trade Uncertainty"
-            value={Math.round(regime.components.tpu)}
+            title="Macro Uncertainty"
+            value={Math.round(regime.components.uncertainty_index)}
             subtext={
-              regime.freshness?.tpu_date
-                ? `FRED EPU Index · as of ${regime.freshness.tpu_date}`
+              regime.freshness?.uncertainty_date
+                ? `FRED Uncertainty Index · as of ${regime.freshness.uncertainty_date}`
                 : "FRED EPU Index"
             }
             icon={ShieldAlert}
@@ -707,7 +715,7 @@ export default async function PolicyPage() {
                 type="executive"
               />
               <FeedColumn
-                title="Tariff Deadlines"
+                title="Policy Deadlines"
                 icon={CalendarClock}
                 items={deadlines}
                 type="deadline"

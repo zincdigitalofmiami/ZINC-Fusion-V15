@@ -61,40 +61,54 @@ export interface PolicyUncertaintyIndex {
   series_id: string;
 }
 
-export interface TariffComponents {
-  tpu_score: number;
-  tpu_value: number;
-  emv_score: number;
-  emv_value: number | null;
+export interface MacroThreatComponents {
+  uncertainty_score: number;
+  uncertainty_value: number;
+  vix_score: number;
+  vix_value: number | null;
+  oil_score: number;
+  oil_change_5d: number | null;
+  inflation_score: number;
+  inflation_value: number | null;
+  iran_war_news_score: number;
+  iran_war_news_count: number;
+  macro_news_score: number;
+  macro_news_count: number;
   legislation_count: number;
   legislation_adj: number;
-  soy_tariff_news_count: number;
-  soy_tariff_news_adj: number;
   specialist_signal: number | null;
   specialist_adj: number;
 }
+
+// Backward-compatible alias for older imports.
+export type TariffComponents = MacroThreatComponents;
 
 // Derived strictly for UI state/scoring (not a table)
 export interface RegimeState {
   score: number; // 0-100 Threat Score
   label:
-    | "Minimal Threat"
-    | "Background Noise"
-    | "Elevated Noise"
-    | "Retaliation Risk"
-    | "Active War";
+    | "Contained"
+    | "Watch"
+    | "Elevated Risk"
+    | "High Alert"
+    | "Systemic Shock";
   headline?: string;
   components: {
-    tpu: number; // Trade Policy Uncertainty Index
-    emv: number; // Equity Market Volatility (Trade)
+    uncertainty_index: number;
+    vix: number;
+    oil_change_5d: number;
+    inflation_expectation: number;
+    iran_war_news: number;
     news_velocity: number; // Count of recent news
     legis_velocity: number; // Count of recent bills
   };
-  tariff_components?: TariffComponents;
+  tariff_components?: MacroThreatComponents;
   // Data freshness (optional, added for transparency)
   freshness?: {
-    tpu_date: string | null;
-    emv_date: string | null;
+    uncertainty_date: string | null;
+    vix_date: string | null;
+    oil_date: string | null;
+    inflation_date: string | null;
     specialist_date: string | null;
   };
 }

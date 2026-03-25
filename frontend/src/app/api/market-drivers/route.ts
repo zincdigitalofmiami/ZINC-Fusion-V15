@@ -21,6 +21,7 @@ import {
   computeDataFreshness,
   buildMarketData,
 } from "@/lib/services/market-drivers-queries";
+import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
 
 export const dynamic = "force-dynamic";
 // Vercel Pro allows up to 300s. The 3 AM cron is the ONLY call that generates
@@ -30,13 +31,13 @@ export const maxDuration = 300;
 const CACHE_STALE_WHILE_REVALIDATE_SECONDS = 60 * 60;
 
 // Must match frontend/vercel.json daily cron (10 AM UTC = 5 AM EST).
-const DAILY_REFRESH_UTC_HOUR = 10;
+const DAILY_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 const DAILY_REFRESH_UTC_MINUTE = 0;
 
 // =============================================================================
-// DAILY AI CACHE — Anthropic runs ONCE at 10 AM UTC (5 AM EST), cached until next refresh
+// DAILY AI CACHE — free OpenRouter AI runs once per day at refresh boundary
 // =============================================================================
-const AI_REFRESH_UTC_HOUR = 10; // Reset AI cache at 10 AM UTC (5 AM EST) each day
+const AI_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR; // Reset AI cache at 10 AM UTC each day
 
 interface AiCacheEntry {
   dayKey: string;
@@ -50,20 +51,20 @@ interface AiCacheEntry {
 
 // Module-level singleton — persists across requests within the same serverless
 // instance. On Vercel, cold starts get a fresh cache = one AI call, then all
-// subsequent requests in that instance reuse it until 5 AM UTC rolls over.
+// subsequent requests in that instance reuse it until 10 AM UTC rolls over.
 // NOTE: This is per-Lambda-instance, NOT shared across instances. Multiple
 // concurrent users may each trigger one AI call on their first request if they
 // hit different instances. This is an acceptable trade-off for Vercel serverless.
 let aiCache: AiCacheEntry | null = null;
 
-/** Returns YYYY-MM-DD for the current "AI day" (resets at 5 AM UTC). */
+/** Returns YYYY-MM-DD for the current "AI day" (resets at 10 AM UTC). */
 function getAiDayKey(now = new Date()): string {
-  // Before 5 AM UTC → still "yesterday's" AI day
+  // Before 10 AM UTC -> still "yesterday's" AI day
   const d = new Date(now);
   if (d.getUTCHours() < AI_REFRESH_UTC_HOUR) {
     d.setUTCDate(d.getUTCDate() - 1);
   }
-  return d.toISOString().slice(0, 10);
+  return `${AI_OUTPUT_VERSION}:${d.toISOString().slice(0, 10)}`;
 }
 
 function getAiCache(): AiCacheEntry | null {
@@ -109,7 +110,7 @@ function getDailyRefreshMeta(now = new Date()) {
 // MAIN API HANDLER — Pure Orchestration
 // =============================================================================
 
-// The nightly cron (3 AM UTC) is the ONLY request that calls Anthropic.
+// The daily cron is intended to prime the free-AI output once per day.
 // No timeout — let it cook. Every daytime request serves from cache.
 const AI_TIMEOUT_MS = 120_000; // 2 min safety net, but cron has 300s total
 
@@ -218,6 +219,14 @@ export async function GET() {
       rawData.legislationCount,
       rawData.soyTariffNews,
       rawData.tariffSignal,
+      {
+        uncertaintyIndex: tpu,
+        vix,
+        oilChange5d: rawData.clChange5d,
+        inflationExpectation: rawData.inflationExpectation,
+        iranWarNews: rawData.iranWarNewsCount,
+        macroNewsCount: rawData.totalNews,
+      },
     );
     const energyResult = calculateEnergyStress(
       rawData.clPrice,
@@ -255,7 +264,7 @@ export async function GET() {
       asOfDate,
     );
 
-    // 6. Daily AI cache — only call Anthropic ONCE per day
+    // 6. Daily AI cache — only call free OpenRouter AI once per day
     const cached = getAiCache();
     let aiIntelligence: AIIntelligence | null;
     let vixIntel: DriverIntel | null;
@@ -265,7 +274,7 @@ export async function GET() {
     let energyIntel: DriverIntel | null;
 
     if (cached) {
-      // Cache hit — skip ALL Anthropic calls
+      // Cache hit — skip all free-AI calls
       aiIntelligence = cached.aiIntelligence;
       vixIntel = cached.vixIntel;
       crushIntel = cached.crushIntel;
@@ -490,6 +499,7 @@ export async function GET() {
           next_refresh_utc: refreshMeta.nextRefreshUtc,
           ai_cached: !!cached,
           ai_cache_day: getAiDayKey(),
+          ai_cache_version: AI_OUTPUT_VERSION,
         },
         drivers: {
           vix_stress: {
@@ -526,7 +536,7 @@ export async function GET() {
             dataDate: rawData.cnyDate,
           },
           tariff_threat: {
-            name: "Tariff Threat",
+            name: "Macro Threat",
             score: tariffResult.score,
             level: tariffResult.level,
             regime: tariffResult.regime,
@@ -563,7 +573,7 @@ export async function GET() {
             { name: "VIX Stress", score: vixResult.score },
             { name: "Crush Pressure", score: crushResult.score },
             { name: "China Tension", score: chinaResult.score },
-            { name: "Tariff Threat", score: tariffResult.score },
+            { name: "Macro Threat", score: tariffResult.score },
             { name: "Energy Stress", score: energyResult.score },
           ].sort((a, b) => b.score - a.score)[0],
           alert_count: [

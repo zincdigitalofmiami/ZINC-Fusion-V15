@@ -3,18 +3,21 @@
 ZINC-FUSION-V15: L5-C LLM Synthesis Engine
 
 Generates natural language summaries of market posture by translating
-quantitative outputs from L4 (meta-ensemble) and L5-A (Monte Carlo) into
-structured explanations.
+quantitative outputs from forecasts.production_1d and L5-A (Monte Carlo)
+into structured explanations.
 
 NON-NEGOTIABLES:
 - LLM explains math. It NEVER invents math.
-- All data comes from L4/L5-A outputs - no external inference
+- All data comes from production forecasts + MC outputs - no external inference
 - Structured prompts with explicit data injection
 - No buy/sell signals - decision support only
 - Output includes: summary, risks, opportunities, invalidation triggers
 
 Architecture (L5-C):
-- Input: Monte Carlo percentiles, SHAP drivers, dissent index, regime, analogs
+- Input: P30/P50/P70 + P10_cal/P90_cal from forecasts.production_1d,
+         MC percentiles from forecasts.monte_carlo_runs,
+         risk metrics from analytics.risk_metrics,
+         SHAP drivers, dissent index, regime, analogs
 - Process: Structured LLM prompt with all data pre-injected
 - Output: Natural language synthesis stored to analytics.llm_synthesis
 
@@ -60,7 +63,6 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv(".env.vercel")
 
 # Horizons
 HORIZONS = [5, 21, 63, 126]
@@ -74,10 +76,12 @@ MAX_TOKENS = 1500
 class SynthesisInput:
     """All data required for LLM synthesis."""
 
-    # Forecast geometry
-    p10: float
+    # Forecast geometry (P30/P50/P70 primary zone, P10/P90 calibrated tails)
+    p30: float
     p50: float
-    p90: float
+    p70: float
+    p10_cal: float
+    p90_cal: float
     horizon_days: int
 
     # Monte Carlo summary
@@ -131,13 +135,16 @@ def get_postgres_connection():
 
 
 def load_forecast_data(conn, horizon: int) -> Dict:
-    """Load latest meta-ensemble forecast for horizon."""
+    """Load latest production forecast for horizon from forecasts.production_1d."""
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, p10, p50, p90
-            FROM "model"."meta_ensemble"
+            SELECT as_of_date,
+                   price_p30, price_p50, price_p70,
+                   price_p10_cal, price_p90_cal
+            FROM "forecasts"."production_1d"
             WHERE horizon = %s
+              AND price_p50 IS NOT NULL
             ORDER BY as_of_date DESC
             LIMIT 1
         """,
@@ -146,23 +153,32 @@ def load_forecast_data(conn, horizon: int) -> Dict:
         row = cur.fetchone()
 
     if not row:
-        raise ValueError(f"No meta-ensemble data for horizon={horizon}")
+        raise ValueError(f"No production forecast data for horizon={horizon}")
+
+    p30 = float(row[1])
+    p50 = float(row[2])
+    p70 = float(row[3])
+    # Calibrated tails; derive symmetrically if missing
+    p10_cal = float(row[4]) if row[4] is not None else p30 - (p50 - p30)
+    p90_cal = float(row[5]) if row[5] is not None else p70 + (p70 - p50)
 
     return {
         "as_of_date": row[0],
-        "p10": float(row[1]),
-        "p50": float(row[2]),
-        "p90": float(row[3]),
+        "p30": p30,
+        "p50": p50,
+        "p70": p70,
+        "p10_cal": p10_cal,
+        "p90_cal": p90_cal,
     }
 
 
 def load_monte_carlo_metrics(conn, horizon: int, as_of_date: datetime) -> Dict:
-    """Load Monte Carlo risk metrics."""
+    """Load Monte Carlo risk metrics from analytics.risk_metrics."""
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT var_05, cvar_05, prob_up, prob_up_5pct, prob_down_5pct
-            FROM risk_metrics
+            FROM "analytics"."risk_metrics"
             WHERE horizon = %s AND as_of_date::date = %s::date
             ORDER BY as_of_date DESC
             LIMIT 1
@@ -186,12 +202,12 @@ def load_monte_carlo_metrics(conn, horizon: int, as_of_date: datetime) -> Dict:
 
 
 def load_monte_carlo_percentiles(conn, horizon: int, as_of_date: datetime) -> Dict:
-    """Load MC path percentiles (P5, P95 terminal)."""
+    """Load MC path percentiles (P5, P95 terminal) from forecasts.monte_carlo_runs."""
     with conn.cursor() as cur:
         cur.execute(
             """
             SELECT percentiles
-            FROM "model"."monte_carlo_runs"
+            FROM "forecasts"."monte_carlo_runs"
             WHERE horizon = %s AND symbol = 'ZL' AND as_of_date::date = %s::date
             ORDER BY created_at DESC
             LIMIT 1
@@ -402,9 +418,11 @@ def gather_synthesis_input(conn, horizon: int) -> SynthesisInput:
 
     # Build input object
     return SynthesisInput(
-        p10=forecast["p10"],
+        p30=forecast["p30"],
         p50=forecast["p50"],
-        p90=forecast["p90"],
+        p70=forecast["p70"],
+        p10_cal=forecast["p10_cal"],
+        p90_cal=forecast["p90_cal"],
         horizon_days=horizon,
         mc_p5=mc_percentiles["mc_p5"],
         mc_p95=mc_percentiles["mc_p95"],
@@ -461,10 +479,13 @@ CRITICAL RULES:
 5. Be concise but thorough. Each section should be 2-4 sentences.
 
 ## Forecast Data (Horizon: {input_data.horizon_days} days)
-- P10 (floor): {input_data.p10:.2f}
+- P30 (zone floor): {input_data.p30:.2f}
 - P50 (median): {input_data.p50:.2f}
-- P90 (ceiling): {input_data.p90:.2f}
-- Forecast spread: {input_data.p90 - input_data.p10:.2f} ({(input_data.p90 - input_data.p10) / input_data.p50 * 100:.1f}% of median)
+- P70 (zone ceiling): {input_data.p70:.2f}
+- Target Zone spread: {input_data.p70 - input_data.p30:.2f} ({(input_data.p70 - input_data.p30) / input_data.p50 * 100:.1f}% of median)
+- P10 (calibrated floor): {input_data.p10_cal:.2f}
+- P90 (calibrated ceiling): {input_data.p90_cal:.2f}
+- Full range: {input_data.p90_cal - input_data.p10_cal:.2f} ({(input_data.p90_cal - input_data.p10_cal) / input_data.p50 * 100:.1f}% of median)
 
 ## Monte Carlo Risk Metrics (10,000 simulations)
 - 5th percentile outcome: {input_data.mc_p5:.2f}
@@ -636,7 +657,7 @@ def generate_synthesis(
 
         logger.info(f"  As of date: {input_data.as_of_date}")
         logger.info(
-            f"  P10/P50/P90: {input_data.p10:.2f} / {input_data.p50:.2f} / {input_data.p90:.2f}"
+            f"  P30/P50/P70: {input_data.p30:.2f} / {input_data.p50:.2f} / {input_data.p70:.2f}"
         )
         logger.info(f"  Dissent index: {input_data.dissent_index:.2f}")
         logger.info(

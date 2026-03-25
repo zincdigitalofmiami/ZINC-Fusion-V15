@@ -136,51 +136,109 @@ function computeFearGreed(
   mmPercentile: number | null,
   bullish: number,
   bearish: number,
-  crushZscore: number | null,
-  realizedVol: number | null,
-  trumpScore: number | null,
+  uncertaintyIndex: number | null,
+  inflationExpectation: number | null,
+  crudeRet5d: number | null,
+  iranWarNewsCount: number,
+  macroNewsCount: number,
 ) {
   const total = bullish + bearish;
   const sentimentRaw = total > 0 ? bullish / total : 0.5;
   const vixScore = vix != null ? mapVixToFearGreed(vix) : 50;
   const posScore = mmPercentile ?? 50;
-  const crushScore =
-    crushZscore != null ? clamp(50 + crushZscore * 25, 0, 100) : 50;
-  const volScore =
-    realizedVol != null
-      ? clamp(100 - ((realizedVol - 15) / 25) * 100, 0, 100)
-      : 50;
   const sentScore = sentimentRaw * 100;
-  // weighted_action_score typically ranges 0-2, can spike to ~4 during intense periods
-  const trumpFear =
-    trumpScore != null ? clamp(100 - trumpScore * 25, 0, 100) : 50;
+
+  const uncertaintyScore =
+    uncertaintyIndex == null
+      ? 50
+      : uncertaintyIndex < 80
+        ? 75
+        : uncertaintyIndex < 125
+          ? 60
+          : uncertaintyIndex < 175
+            ? 45
+            : uncertaintyIndex < 250
+              ? 30
+              : 15;
+
+  const inflationScore =
+    inflationExpectation == null
+      ? 50
+      : inflationExpectation < 1.8
+        ? 60
+        : inflationExpectation < 2.3
+          ? 52
+          : inflationExpectation < 2.8
+            ? 42
+            : inflationExpectation < 3.2
+              ? 30
+              : 18;
+
+  const oilScore =
+    crudeRet5d == null
+      ? 50
+      : crudeRet5d <= -6
+        ? 75
+        : crudeRet5d <= -2
+          ? 60
+          : crudeRet5d <= 2
+            ? 50
+            : crudeRet5d <= 5
+              ? 35
+              : crudeRet5d <= 10
+                ? 20
+                : 10;
+
+  const iranWarScore =
+    iranWarNewsCount <= 0
+      ? 60
+      : iranWarNewsCount <= 2
+        ? 50
+        : iranWarNewsCount <= 5
+          ? 35
+          : iranWarNewsCount <= 9
+            ? 22
+            : 12;
+
+  const newsScore =
+    macroNewsCount <= 5
+      ? 60
+      : macroNewsCount <= 12
+        ? 50
+        : macroNewsCount <= 20
+          ? 40
+          : macroNewsCount <= 30
+            ? 30
+            : 20;
 
   const components = {
-    vix: { score: Math.round(vixScore), weight: 0.20, raw: vix ?? 0 },
+    vix: { score: Math.round(vixScore), weight: 0.22, raw: vix ?? 0 },
+    oil: { score: Math.round(oilScore), weight: 0.18, raw: crudeRet5d ?? 0 },
+    uncertainty: {
+      score: Math.round(uncertaintyScore),
+      weight: 0.16,
+      raw: uncertaintyIndex ?? 0,
+    },
+    inflation: {
+      score: Math.round(inflationScore),
+      weight: 0.12,
+      raw: inflationExpectation ?? 0,
+    },
+    iranWar: {
+      score: Math.round(iranWarScore),
+      weight: 0.12,
+      raw: iranWarNewsCount,
+    },
+    news: { score: Math.round(newsScore), weight: 0.10, raw: macroNewsCount },
     positioning: {
       score: Math.round(posScore),
-      weight: 0.20,
+      weight: 0.06,
       raw: mmPercentile ?? 50,
     },
     sentiment: {
       score: Math.round(sentScore),
-      weight: 0.15,
+      weight: 0.04,
       raw: sentimentRaw,
-    },
-    crush: {
-      score: Math.round(crushScore),
-      weight: 0.15,
-      raw: crushZscore ?? 0,
-    },
-    volatility: {
-      score: Math.round(volScore),
-      weight: 0.15,
-      raw: realizedVol ?? 0,
-    },
-    trumpEffect: {
-      score: Math.round(trumpFear),
-      weight: 0.15,
-      raw: trumpScore ?? 0,
     },
   };
 
@@ -255,10 +313,14 @@ export async function GET() {
       rsiResult,
       vixResult,
       ovxResult,
+      uncertaintyResult,
+      inflationExpectationResult,
       crushResult,
       signalsResult,
       trumpResult,
       sentimentRatioResult,
+      iranWarNewsResult,
+      macroNewsResult,
     ] = await Promise.all([
       // 1. Current ZL price from the serving contract.
       safeValue(getZlLiveSnapshot()),
@@ -508,6 +570,24 @@ export async function GET() {
          ORDER BY event_date DESC LIMIT 1`,
       )),
 
+      // 12b. Uncertainty index (monthly)
+      safe(query<{ value: string; event_date: string }>(
+        `SELECT value::text AS value, event_date::text AS event_date
+         FROM econ.vol_indices_1d
+         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
+         ORDER BY event_date DESC
+         LIMIT 1`,
+      )),
+
+      // 12c. Inflation expectations (5Y breakeven)
+      safe(query<{ value: string; event_date: string }>(
+        `SELECT value::text AS value, event_date::text AS event_date
+         FROM econ.inflation_1d
+         WHERE series_id = 'T5YIE' AND value IS NOT NULL
+         ORDER BY event_date DESC
+         LIMIT 1`,
+      )),
+
       // 13. Board crush + oil share z-scores
       safe(query<{
         crush_now: string;
@@ -651,6 +731,66 @@ export async function GET() {
            WHERE event_date >= NOW() - INTERVAL '7 days'
          ) sentiment_rows`,
       )),
+
+      // 17. Iran-war / Hormuz headline velocity (7d)
+      safe(query<{ count: number }>(
+        `SELECT COUNT(*)::int as count
+         FROM (
+           SELECT headline, content
+           FROM alt.policy_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.econ_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.profarmer_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+         ) n
+         WHERE (
+           headline ILIKE '%iran%' OR headline ILIKE '%israel%' OR headline ILIKE '%hormuz%'
+           OR headline ILIKE '%strait of hormuz%' OR headline ILIKE '%middle east%'
+           OR headline ILIKE '%war%' OR headline ILIKE '%missile%' OR headline ILIKE '%red sea%'
+           OR content ILIKE '%iran%' OR content ILIKE '%hormuz%' OR content ILIKE '%war%'
+         )`,
+      )),
+
+      // 18. Macro-risk news velocity (7d)
+      safe(query<{ count: number }>(
+        `SELECT COUNT(*)::int as count
+         FROM (
+           SELECT headline, content
+           FROM alt.policy_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.econ_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.profarmer_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+         ) n
+         WHERE (
+           headline ILIKE '%inflation%' OR headline ILIKE '%cpi%' OR headline ILIKE '%ppi%'
+           OR headline ILIKE '%interest rate%' OR headline ILIKE '%federal reserve%'
+           OR headline ILIKE '%uncertainty%' OR headline ILIKE '%vix%' OR headline ILIKE '%volatility%'
+           OR headline ILIKE '%crude%' OR headline ILIKE '%oil%'
+           OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%war%'
+           OR content ILIKE '%inflation%' OR content ILIKE '%interest rate%'
+           OR content ILIKE '%uncertainty%' OR content ILIKE '%vix%'
+           OR content ILIKE '%oil price%' OR content ILIKE '%iran%' OR content ILIKE '%war%'
+         )`,
+      )),
     ]);
 
     const latestDailyPrice = priceResult[0];
@@ -699,9 +839,13 @@ export async function GET() {
     const rsi = rsiResult[0];
     const vixData = vixResult[0];
     const ovxData = ovxResult[0];
+    const uncertaintyData = uncertaintyResult[0] ?? null;
+    const inflationData = inflationExpectationResult[0] ?? null;
     const crush = crushResult[0];
     const trump = trumpResult[0] ?? null;
     const sentimentCounts = countSentimentRows(sentimentRatioResult);
+    const iranWarNewsCount = iranWarNewsResult[0]?.count ?? 0;
+    const macroNewsCount = macroNewsResult[0]?.count ?? 0;
     const [trumpActions, trumpConfirmationRows, trumpZlResponseRows]: [
       ExecutiveActionRow[],
       ConfirmationInputs[],
@@ -980,9 +1124,11 @@ export async function GET() {
       cot ? toNumber(cot.percentile, 50) : null,
       sentimentCounts.bullish,
       sentimentCounts.bearish,
-      crush ? Number(crush.crush_z) : null,
-      rvol ? Number(rvol.rvol_21d) : null,
-      trumpEffect?.weighted_action_score ?? null,
+      uncertaintyData ? toNumber(uncertaintyData.value) : null,
+      inflationData ? toNumber(inflationData.value) : null,
+      crudeLatest ? toNumber(crudeLatest.ret_5d) : null,
+      iranWarNewsCount,
+      macroNewsCount,
     );
 
     const cotOpenInterest = cot ? toNumber(cot.open_interest) : 0;

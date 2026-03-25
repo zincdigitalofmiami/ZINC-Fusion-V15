@@ -272,30 +272,57 @@ export class PolicyService {
   }
 
   static async getRegimeStatus(): Promise<RegimeState> {
-    // Fetch all 5 components for calculateTariffThreat() in parallel
-    // Also fetch freshness dates for transparency
+    // Macro threat model inputs:
+    // Iran war + oil + inflation + uncertainty + VIX + broad news flow.
     const [
-      dailyTpu,
-      monthlyTpu,
-      emvData,
+      dailyUncertainty,
+      monthlyUncertainty,
+      vixData,
+      oilMoveData,
+      inflationData,
       specialistData,
       legisCount,
-      newsCount,
+      iranWarNewsCount,
+      macroNewsCount,
     ] = await Promise.all([
       query<{ val: number; dt: string }>(`
         SELECT value::float8 as val, event_date::text as dt FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
-      query<{ val: number }>(`
-        SELECT value::float8 as val FROM econ.vol_indices_1d
+      query<{ val: number; dt: string }>(`
+        SELECT value::float8 as val, event_date::text as dt FROM econ.vol_indices_1d
         WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
       `),
       query<{ val: number; dt: string }>(`
         SELECT value::float8 as val, event_date::text as dt FROM econ.vol_indices_1d
-        WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL
+        WHERE series_id = 'VIXCLS' AND value IS NOT NULL
         ORDER BY event_date DESC LIMIT 1
+      `),
+      query<{ chg_5d: number | null; dt: string }>(`
+        WITH cl AS (
+          SELECT close::float8 as close, event_date::text as event_date,
+                 ROW_NUMBER() OVER (ORDER BY event_date DESC) as rn
+          FROM mkt.futures_1d
+          WHERE symbol = 'CL' AND close IS NOT NULL
+          LIMIT 6
+        )
+        SELECT
+          CASE
+            WHEN (SELECT close FROM cl WHERE rn = 6) > 0
+              THEN ((SELECT close FROM cl WHERE rn = 1) - (SELECT close FROM cl WHERE rn = 6))
+                   / (SELECT close FROM cl WHERE rn = 6)
+            ELSE NULL
+          END::float8 AS chg_5d,
+          (SELECT event_date FROM cl WHERE rn = 1) AS dt
+      `),
+      query<{ val: number; dt: string }>(`
+        SELECT value::float8 as val, event_date::text as dt
+        FROM econ.inflation_1d
+        WHERE series_id = 'T5YIE' AND value IS NOT NULL
+        ORDER BY event_date DESC
+        LIMIT 1
       `),
       query<{ signal: number; dt: string }>(`
         SELECT (features->>'neural_signal')::float8 as signal, as_of_date::text as dt
@@ -303,56 +330,78 @@ export class PolicyService {
         WHERE (features->>'neural_signal') IS NOT NULL
         ORDER BY as_of_date DESC LIMIT 1
       `),
-      // Legislation velocity: trade/tariff + biofuel/EPA/energy policy
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM alt.legislation_1d
         WHERE event_date >= CURRENT_DATE - INTERVAL '14 days'
-        AND (title ILIKE '%trade%' OR title ILIKE '%tariff%' OR title ILIKE '%import%' OR title ILIKE '%export%'
-         OR title ILIKE '%biofuel%' OR title ILIKE '%biodiesel%' OR title ILIKE '%renewable fuel%'
-         OR title ILIKE '%renewable diesel%' OR title ILIKE '%soybean%' OR title ILIKE '%vegetable oil%'
-         OR title ILIKE '%ethanol%' OR title ILIKE '%clean fuel%')
+        AND (
+          title ILIKE '%iran%' OR title ILIKE '%israel%' OR title ILIKE '%war%' OR title ILIKE '%sanction%'
+          OR title ILIKE '%crude%' OR title ILIKE '%oil%' OR title ILIKE '%energy%'
+          OR title ILIKE '%inflation%' OR title ILIKE '%interest rate%' OR title ILIKE '%federal reserve%'
+          OR title ILIKE '%uncertainty%' OR title ILIKE '%volatility%'
+        )
       `),
-      // News velocity: BOTH ProFarmer + Google News (policy_news_event)
-      // ProFarmer has been dead since Feb 14 2026; Google News RSS fills the gap.
-      // Broadened keywords: trade/tariff + biofuel/EPA/RFS + sanctions/geopolitical
       query<{ count: number }>(`
         SELECT COUNT(*)::int as count FROM (
-          SELECT headline FROM alt.profarmer_news_event
+          SELECT headline, content FROM alt.profarmer_news_event
           WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-          AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
-           OR (headline ILIKE '%soy%' AND headline ILIKE '%duty%')
-           OR (headline ILIKE '%china%' AND headline ILIKE '%tariff%')
-           OR headline ILIKE '%rfs%' OR headline ILIKE '%biodiesel%' OR headline ILIKE '%renewable diesel%'
-           OR headline ILIKE '%sanctions%' OR headline ILIKE '%crude oil%'
-           OR headline ILIKE '%biofuel%' OR headline ILIKE '%epa%')
           UNION ALL
-          SELECT headline FROM alt.policy_news_event
+          SELECT headline, content FROM alt.policy_news_event
           WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
-          AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade war%' OR headline ILIKE '%retaliatory%'
-           OR (headline ILIKE '%soy%' AND (headline ILIKE '%duty%' OR headline ILIKE '%oil%'))
-           OR (headline ILIKE '%china%' AND (headline ILIKE '%tariff%' OR headline ILIKE '%trade%'))
-           OR headline ILIKE '%rfs%' OR headline ILIKE '%biodiesel%' OR headline ILIKE '%renewable diesel%'
-           OR headline ILIKE '%sanctions%' OR headline ILIKE '%crude oil%'
-           OR headline ILIKE '%biofuel%' OR headline ILIKE '%epa%'
-           OR headline ILIKE '%ethanol%' OR headline ILIKE '%import duty%')
+          UNION ALL
+          SELECT headline, content FROM alt.econ_news_event
+          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
         ) combined
+        WHERE
+          headline ILIKE '%iran%' OR headline ILIKE '%israel%' OR headline ILIKE '%hormuz%'
+          OR headline ILIKE '%middle east%' OR headline ILIKE '%war%' OR headline ILIKE '%missile%'
+          OR content ILIKE '%strait of hormuz%' OR content ILIKE '%iran%' OR content ILIKE '%war%'
+      `),
+      query<{ count: number }>(`
+        SELECT COUNT(*)::int as count FROM (
+          SELECT headline, content FROM alt.profarmer_news_event
+          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+          UNION ALL
+          SELECT headline, content FROM alt.policy_news_event
+          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+          UNION ALL
+          SELECT headline, content FROM alt.econ_news_event
+          WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+        ) combined
+        WHERE
+          headline ILIKE '%inflation%' OR headline ILIKE '%cpi%' OR headline ILIKE '%ppi%'
+          OR headline ILIKE '%federal reserve%' OR headline ILIKE '%fed%' OR headline ILIKE '%interest rate%'
+          OR headline ILIKE '%uncertainty%' OR headline ILIKE '%volatility%' OR headline ILIKE '%vix%'
+          OR headline ILIKE '%crude%' OR headline ILIKE '%oil%' OR headline ILIKE '%energy%'
+          OR headline ILIKE '%iran%' OR headline ILIKE '%hormuz%' OR headline ILIKE '%war%'
+          OR content ILIKE '%inflation%' OR content ILIKE '%interest rate%'
+          OR content ILIKE '%uncertainty%' OR content ILIKE '%oil price%' OR content ILIKE '%vix%'
       `),
     ]);
 
-    // Resolve inputs with fallbacks
-    const tpu = dailyTpu[0]?.val ?? monthlyTpu[0]?.val ?? 100;
-    const emv = emvData[0]?.val ?? null;
+    const uncertaintyIndex =
+      dailyUncertainty[0]?.val ?? monthlyUncertainty[0]?.val ?? 100;
+    const vix = vixData[0]?.val ?? null;
+    const oilChange5d = oilMoveData[0]?.chg_5d ?? null;
+    const inflationExpectation = inflationData[0]?.val ?? null;
     const specialistSignal = specialistData[0]?.signal ?? null;
     const lCount = legisCount[0]?.count ?? 0;
-    const nCount = newsCount[0]?.count ?? 0;
+    const iranWarNews = iranWarNewsCount[0]?.count ?? 0;
+    const nCount = macroNewsCount[0]?.count ?? 0;
 
-    // Full 5-component tariff threat scoring (matches policy_pressure.py)
     const threat = calculateTariffThreat(
-      tpu,
-      emv,
+      uncertaintyIndex,
+      null,
       lCount,
       nCount,
       specialistSignal,
+      {
+        uncertaintyIndex,
+        vix,
+        oilChange5d,
+        inflationExpectation,
+        iranWarNews,
+        macroNewsCount: nCount,
+      },
     );
 
     return {
@@ -360,15 +409,21 @@ export class PolicyService {
       label: threat.level as RegimeState["label"],
       headline: threat.headline,
       components: {
-        tpu,
-        emv: emv ?? 0,
-        legis_velocity: lCount,
+        uncertainty_index: uncertaintyIndex,
+        vix: vix ?? 0,
+        oil_change_5d: oilChange5d ?? 0,
+        inflation_expectation: inflationExpectation ?? 0,
+        iran_war_news: iranWarNews,
         news_velocity: nCount,
+        legis_velocity: lCount,
       },
       tariff_components: threat.components,
       freshness: {
-        tpu_date: dailyTpu[0]?.dt ?? null,
-        emv_date: emvData[0]?.dt ?? null,
+        uncertainty_date:
+          dailyUncertainty[0]?.dt ?? monthlyUncertainty[0]?.dt ?? null,
+        vix_date: vixData[0]?.dt ?? null,
+        oil_date: oilMoveData[0]?.dt ?? null,
+        inflation_date: inflationData[0]?.dt ?? null,
         specialist_date: specialistData[0]?.dt ?? null,
       },
     };
@@ -379,47 +434,95 @@ export class PolicyService {
 // EXPORTED HELPER FUNCTIONS (API SUPPORT)
 // ===========================================
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 export function scoreTpu(value: number): { score: number; regime: string } {
-  // Normalize 0-300 scale to 0-100
-  const score = Math.min(100, (value / 300) * 100);
-
-  let regime = "Minimal";
-  if (value >= EPU_THRESHOLDS.HIGH) regime = "Active War";
-  else if (value >= EPU_THRESHOLDS.ELEVATED) regime = "Retaliation Risk";
-  else if (value >= EPU_THRESHOLDS.NORMAL) regime = "Elevated";
-  else if (value >= EPU_THRESHOLDS.LOW) regime = "Background Noise";
-
-  return { score, regime };
+  // Kept as export name for compatibility; now treated as macro uncertainty.
+  if (!Number.isFinite(value)) return { score: 50, regime: "watch" };
+  if (value <= EPU_THRESHOLDS.LOW) return { score: 25, regime: "contained" };
+  if (value <= EPU_THRESHOLDS.NORMAL) {
+    const t = (value - EPU_THRESHOLDS.LOW) / (EPU_THRESHOLDS.NORMAL - EPU_THRESHOLDS.LOW);
+    return { score: 25 + t * 20, regime: "watch" };
+  }
+  if (value <= EPU_THRESHOLDS.ELEVATED) {
+    const t =
+      (value - EPU_THRESHOLDS.NORMAL) /
+      (EPU_THRESHOLDS.ELEVATED - EPU_THRESHOLDS.NORMAL);
+    return { score: 45 + t * 20, regime: "elevated_risk" };
+  }
+  if (value <= EPU_THRESHOLDS.HIGH) {
+    const t = (value - EPU_THRESHOLDS.ELEVATED) / (EPU_THRESHOLDS.HIGH - EPU_THRESHOLDS.ELEVATED);
+    return { score: 65 + t * 15, regime: "high_alert" };
+  }
+  const excess = Math.min(1, (value - EPU_THRESHOLDS.HIGH) / 150);
+  return { score: 80 + excess * 20, regime: "systemic_shock" };
 }
 
 export function scoreEmv(value: number | null): { score: number } {
-  if (value === null) return { score: 0 };
-  // EMV tends to align with EPU, use same normalization for consistency
-  const score = Math.min(100, (value / 300) * 100);
-  return { score };
+  // Kept as export name for compatibility; EMV is treated as a secondary uncertainty signal.
+  if (value === null || !Number.isFinite(value)) return { score: 50 };
+  return { score: clamp((value / 300) * 100, 0, 100) };
 }
 
 export function scoreLegislationVelocity(count: number): number {
-  // Simple heuristic: 0 count -> 0, 10 count -> +20
-  return Math.min(20, count * 2);
+  // Small additive kicker only; this is no longer the core driver.
+  return clamp(count * 1.2, 0, 12);
 }
 
-export function scoreNewsVelocity(count: number): number {
-  // Simple heuristic: 0 count -> 0, 20 count -> +20
-  return Math.min(20, count);
+function scoreVixRisk(vix: number | null): number {
+  if (vix === null || !Number.isFinite(vix)) return 50;
+  if (vix < 15) return 20;
+  if (vix < 20) return 35;
+  if (vix < 25) return 50;
+  if (vix < 30) return 65;
+  if (vix < 40) return 82;
+  return 100;
 }
 
-// ===========================================
-// TARIFF THREAT SCORING (Full Sophistication)
-// Matches policy_pressure.py exactly
-// ===========================================
+function scoreOilRisk(change5d: number | null): number {
+  if (change5d === null || !Number.isFinite(change5d)) return 50;
+  if (change5d <= -0.08) return 20;
+  if (change5d <= -0.03) return 35;
+  if (change5d <= 0.02) return 50;
+  if (change5d <= 0.05) return 65;
+  if (change5d <= 0.1) return 80;
+  return 95;
+}
+
+function scoreInflationRisk(value: number | null): number {
+  // T5YIE is in percent terms; elevated inflation expectations generally lift
+  // commodity risk premia for soybean oil buyers.
+  if (value === null || !Number.isFinite(value)) return 50;
+  if (value < 1.8) return 30;
+  if (value < 2.3) return 45;
+  if (value < 2.8) return 60;
+  if (value < 3.2) return 75;
+  return 90;
+}
+
+export function scoreNewsVelocity(count: number, maxCount = 24): number {
+  if (!Number.isFinite(count) || count <= 0) return 0;
+  return clamp((count / maxCount) * 100, 0, 100);
+}
+
+export interface MacroThreatContext {
+  uncertaintyIndex?: number | null;
+  vix?: number | null;
+  oilChange5d?: number | null;
+  inflationExpectation?: number | null;
+  iranWarNews?: number | null;
+  macroNewsCount?: number | null;
+}
 
 export function calculateTariffThreat(
   tpu: number,
-  emv: number | null,
+  _emv: number | null,
   legislationCount: number,
   soyTariffNews: number,
   specialistSignal: number | null,
+  context?: MacroThreatContext,
 ): {
   score: number;
   level: string;
@@ -427,57 +530,67 @@ export function calculateTariffThreat(
   headline: string;
   components: TariffComponents;
 } {
-  // Component 1: TPU (35%)
-  const { score: tpuScore, regime } = scoreTpu(tpu);
-
-  // Component 2: EMV (20%)
-  const { score: emvScore } = scoreEmv(emv);
-
-  // Component 3: Legislation Velocity (10%)
-  const legisAdj = scoreLegislationVelocity(legislationCount);
-
-  // Component 4: Soy Tariff News (20%)
-  const newsAdj = scoreNewsVelocity(soyTariffNews);
-
-  // Component 5: Specialist Signal (15%)
-  let specialistAdj = 0;
-  if (specialistSignal !== null) {
-    specialistAdj = -specialistSignal * 20 * 0.5;
-  }
-
-  // Composite Score (SOY-CENTRIC WEIGHTS from Python)
-  // TPU 35%, EMV 20%, Legislation 10%, Specialist 15%, Soy News 20%
-  const score = Math.max(
+  const uncertaintyValue = context?.uncertaintyIndex ?? tpu;
+  const { score: uncertaintyScore } = scoreTpu(uncertaintyValue);
+  const vixScore = scoreVixRisk(context?.vix ?? null);
+  const oilScore = scoreOilRisk(context?.oilChange5d ?? null);
+  const inflationScore = scoreInflationRisk(context?.inflationExpectation ?? null);
+  const iranWarNewsCount = Math.max(0, Math.round(context?.iranWarNews ?? 0));
+  const macroNewsCount = Math.max(
     0,
-    Math.min(
-      100,
-      tpuScore * 0.35 +
-        emvScore * 0.2 +
-        (50 + legisAdj) * 0.1 +
-        (50 + specialistAdj) * 0.15 +
-        (50 + newsAdj) * 0.2,
-    ),
+    Math.round(context?.macroNewsCount ?? soyTariffNews),
+  );
+  const iranWarNewsScore = scoreNewsVelocity(iranWarNewsCount, 10);
+  const macroNewsScore = scoreNewsVelocity(
+    Math.max(macroNewsCount, soyTariffNews),
+    28,
   );
 
-  // Level - ACTIONABLE LABELS
-  let level: string;
-  if (score >= 80) level = "Active War";
-  else if (score >= 65) level = "Retaliation Risk";
-  else if (score >= 50) level = "Elevated Noise";
-  else if (score >= 35) level = "Background Noise";
-  else level = "Minimal Threat";
+  const legislationAdj = scoreLegislationVelocity(legislationCount);
+  const specialistAdj =
+    specialistSignal !== null && Number.isFinite(specialistSignal)
+      ? clamp(-specialistSignal * 8, -8, 8)
+      : 0;
 
-  // Headlines with TPU context (normal ~100, elevated ~200, crisis 400+)
+  const weightedScore =
+    uncertaintyScore * 0.24 +
+    vixScore * 0.2 +
+    oilScore * 0.18 +
+    inflationScore * 0.14 +
+    iranWarNewsScore * 0.14 +
+    macroNewsScore * 0.1;
+
+  const score = clamp(weightedScore + legislationAdj + specialistAdj, 0, 100);
+
+  let level: string;
+  let regime: string;
+  if (score >= 80) {
+    level = "Systemic Shock";
+    regime = "systemic_shock";
+  } else if (score >= 65) {
+    level = "High Alert";
+    regime = "high_alert";
+  } else if (score >= 50) {
+    level = "Elevated Risk";
+    regime = "elevated_risk";
+  } else if (score >= 35) {
+    level = "Watch";
+    regime = "watch";
+  } else {
+    level = "Contained";
+    regime = "contained";
+  }
+
   const headline =
     score >= 80
-      ? "ZL Bearish - Active Tariffs on Soy (TPU 400+)"
+      ? "Systemic macro shock: war-risk headlines, oil stress, and volatility are all elevated."
       : score >= 65
-        ? "ZL Cautious - Retaliatory Tariff Risk (TPU 200+)"
+        ? "High-alert macro regime: uncertainty, oil, and VIX are raising procurement risk."
         : score >= 50
-          ? "TPU Elevated - Export Sales Pace Uncertain"
+          ? "Elevated macro pressure: monitor Iran-war flow, inflation, and crude closely."
           : score >= 35
-            ? "TPU Normal Range - Background Trade Noise"
-            : "Trade Policy Calm - Supportive for Soy Exports";
+            ? "Watch regime: mixed macro signals with manageable pressure."
+            : "Contained macro backdrop: uncertainty and volatility are currently stable.";
 
   return {
     score: Math.round(score * 10) / 10,
@@ -485,14 +598,30 @@ export function calculateTariffThreat(
     regime,
     headline,
     components: {
-      tpu_score: Math.round(tpuScore * 10) / 10,
-      tpu_value: Math.round(tpu),
-      emv_score: Math.round(emvScore * 10) / 10,
-      emv_value: emv ? Math.round(emv) : null,
+      uncertainty_score: Math.round(uncertaintyScore * 10) / 10,
+      uncertainty_value: Math.round(uncertaintyValue),
+      vix_score: Math.round(vixScore * 10) / 10,
+      vix_value:
+        context?.vix !== null && context?.vix !== undefined
+          ? Math.round(context.vix * 10) / 10
+          : null,
+      oil_score: Math.round(oilScore * 10) / 10,
+      oil_change_5d:
+        context?.oilChange5d !== null && context?.oilChange5d !== undefined
+          ? Math.round(context.oilChange5d * 10_000) / 10_000
+          : null,
+      inflation_score: Math.round(inflationScore * 10) / 10,
+      inflation_value:
+        context?.inflationExpectation !== null &&
+        context?.inflationExpectation !== undefined
+          ? Math.round(context.inflationExpectation * 100) / 100
+          : null,
+      iran_war_news_score: Math.round(iranWarNewsScore * 10) / 10,
+      iran_war_news_count: iranWarNewsCount,
+      macro_news_score: Math.round(macroNewsScore * 10) / 10,
+      macro_news_count: macroNewsCount,
       legislation_count: legislationCount,
-      legislation_adj: Math.round(legisAdj * 10) / 10,
-      soy_tariff_news_count: soyTariffNews,
-      soy_tariff_news_adj: Math.round(newsAdj * 10) / 10,
+      legislation_adj: Math.round(legislationAdj * 10) / 10,
       specialist_signal: specialistSignal,
       specialist_adj: Math.round(specialistAdj * 10) / 10,
     },

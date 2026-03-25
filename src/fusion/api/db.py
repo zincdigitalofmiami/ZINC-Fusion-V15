@@ -181,7 +181,7 @@ TABLE_MAP = {
     # Model registry
     "model.model_registry": '"model"."model_registry"',
     # Forecasts
-    "forecasts.forecast_quantiles": '"forecasts"."forecast_quantiles"',
+    "forecasts.production_1d": '"forecasts"."production_1d"',
     # Analytics
     "analytics.driver_scores": '"analytics"."driver_scores"',
 }

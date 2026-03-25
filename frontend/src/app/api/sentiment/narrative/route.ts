@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import { AI_OUTPUT_VERSION, MODEL_DRIVER_INTEL } from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 import { parseAIJson } from "@/lib/parse-ai-json";
 import {
@@ -90,7 +90,9 @@ function payloadCacheKey(payload: NarrativeRequest, aiEnabled: boolean): string 
   const normalized = normalizeForHash(payload);
   const serialized = JSON.stringify(normalized);
   return createHash("sha256")
-    .update(`${aiEnabled ? "ai" : "det"}:${serialized}`)
+    .update(
+      `${AI_OUTPUT_VERSION}:${MODEL_DRIVER_INTEL}:${aiEnabled ? "ai" : "det"}:${serialized}`,
+    )
     .digest("hex");
 }
 

@@ -12,7 +12,7 @@ NON-NEGOTIABLES:
 - Similarity score is transparent and reproducible
 
 Architecture (L5-D):
-- Input: Current P50, spread, regime, driver rankings from L4
+- Input: Current P50, spread (P70-P30), regime, driver rankings from forecasts.production_1d
 - Process: Multi-component similarity scoring against historical states
 - Output: Top N analog periods with similarity scores and actual outcomes
 - Storage: analytics.historical_analogs
@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-load_dotenv(".env.vercel")
 
 # Horizons
 HORIZONS = [5, 21, 63, 126]
@@ -79,7 +78,7 @@ class MarketState:
     as_of_date: datetime
     horizon: int
     p50: float
-    spread: float  # P90 - P10
+    spread: float  # P70 - P30 (target zone width)
     regime: str
     driver_ranks: Dict[str, int]  # Feature -> rank by importance
 
@@ -107,13 +106,14 @@ def load_current_state(conn, horizon: int) -> MarketState:
     """Load the current (latest) market state for comparison."""
     logger.info(f"Loading current market state for horizon={horizon}d")
 
-    # Get latest meta-ensemble forecast
+    # Get latest production forecast (P30/P50/P70 contract)
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, p10, p50, p90
-            FROM "model"."meta_ensemble"
+            SELECT as_of_date, price_p30, price_p50, price_p70
+            FROM "forecasts"."production_1d"
             WHERE horizon = %s
+              AND price_p50 IS NOT NULL
             ORDER BY as_of_date DESC
             LIMIT 1
         """,
@@ -122,11 +122,11 @@ def load_current_state(conn, horizon: int) -> MarketState:
         row = cur.fetchone()
 
     if not row:
-        raise ValueError(f"No meta-ensemble data for horizon={horizon}")
+        raise ValueError(f"No production forecast data for horizon={horizon}")
 
     as_of_date = row[0]
-    p10, p50, p90 = float(row[1]), float(row[2]), float(row[3])
-    spread = p90 - p10
+    p30, p50, p70 = float(row[1]), float(row[2]), float(row[3])
+    spread = p70 - p30
 
     # Get current regime
     with conn.cursor() as cur:
@@ -203,10 +203,11 @@ def load_historical_states(
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT as_of_date, p10, p50, p90
-            FROM "model"."meta_ensemble"
+            SELECT as_of_date, price_p30, price_p50, price_p70
+            FROM "forecasts"."production_1d"
             WHERE horizon = %s
               AND as_of_date BETWEEN %s AND %s
+              AND price_p50 IS NOT NULL
             ORDER BY as_of_date
         """,
             (horizon, start_date, end_date),
@@ -226,8 +227,8 @@ def load_historical_states(
     states = []
     for row in rows:
         as_of_date = row[0]
-        p10, p50, p90 = float(row[1]), float(row[2]), float(row[3])
-        spread = p90 - p10
+        p30, p50, p70 = float(row[1]), float(row[2]), float(row[3])
+        spread = p70 - p30
 
         regime = regime_history.get(as_of_date.date(), "normal")
         driver_ranks = load_driver_ranks(conn, horizon, as_of_date)

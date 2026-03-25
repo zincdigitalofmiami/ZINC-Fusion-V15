@@ -5,7 +5,7 @@ Domain-specific indicators for each of the 11 specialist buckets.
 
 Each bucket has custom indicators and regime detection tailored to its specific market drivers.
 
-⚠️ CRITICAL: Specialist weights are LEARNED by the L1 meta-ensemble from market data.
+⚠️ CRITICAL: Specialist weights are LEARNED by AutoGluon's WeightedEnsemble from market data.
    NEVER hardcode weight percentages - the market determines importance, not humans.
 
 Buckets:
@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore")
 class BucketConfig:
     """Configuration for a specialist bucket.
 
-    NOTE: No weight_range field - weights are learned by L1 meta-ensemble.
+    NOTE: No weight_range field - weights are learned by AutoGluon WeightedEnsemble.
     """
 
     name: str

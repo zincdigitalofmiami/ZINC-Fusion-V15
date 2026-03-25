@@ -98,22 +98,22 @@ export function generateMarketIntelligence(
     );
   }
 
-  // China - keep it real
+  // China
   if (china.score >= 65) {
     summaryParts.push(
-      `China trade is frozen - that's hurting overall soybean demand.`,
+      `China demand pulse is weak - global buying flow is not providing support.`,
     );
   } else {
     summaryParts.push(
-      `China is buying from Brazil (13% tariff gap vs US) - that's just reality.`,
+      `China demand is stable but not a major upside catalyst right now.`,
     );
   }
 
-  // Tariff - cut the noise
+  // Macro threat (Iran war, inflation, oil, uncertainty, VIX, news)
   if (tariff.score >= 65) {
-    summaryParts.push(`Trade war risk is elevated - stay defensive.`);
+    summaryParts.push(`Macro threat is high - geopolitical and oil-risk headlines can reprice ZL quickly.`);
   } else if (tariff.score <= 35) {
-    summaryParts.push(`Trade policy is quiet - no new threats.`);
+    summaryParts.push(`Macro backdrop is contained - no immediate shock signal.`);
   }
 
   // Energy - crude oil / biofuel channel
@@ -177,15 +177,15 @@ export function generateMarketIntelligence(
           : `Brazil preferred at 13% tariff gap`,
     },
     {
-      label: "Trade",
+      label: "Macro",
       outlook:
-        tariff.score >= 65 ? "RISK" : tariff.score <= 35 ? "QUIET" : "NOISE",
+        tariff.score >= 65 ? "ALERT" : tariff.score <= 35 ? "CALM" : "WATCH",
       detail:
         tariff.score >= 65
-          ? "War risk elevated"
+          ? "Iran/uncertainty/oil risk elevated"
           : tariff.score <= 35
-            ? "Policy stable"
-            : "Headlines, no action",
+            ? "Contained macro backdrop"
+            : "Macro headlines mixed",
     },
     ...(energy
       ? [

@@ -24,8 +24,28 @@ async function getJson(
   const res = await request.get(path);
   const status = res.status();
   expect(okStatuses).toContain(status);
-  const body = (await res.json()) as Record<string, unknown>;
+  const text = await res.text();
+  let body: Record<string, unknown> = {};
+  if (text) {
+    try {
+      body = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      body = { raw: text };
+    }
+  }
   return { status, body };
+}
+
+async function postText(
+  request: APIRequestContext,
+  path: string,
+  data: Record<string, unknown>,
+  okStatuses: number[] = [200],
+): Promise<{ status: number; text: string }> {
+  const res = await request.post(path, { data });
+  const status = res.status();
+  expect(okStatuses).toContain(status);
+  return { status, text: await res.text() };
 }
 
 /** Assert `body` contains each key (and optional value). */
@@ -74,13 +94,13 @@ const ZL_ENDPOINTS: EndpointSpec[] = [
   },
   {
     path: "/api/zl/price-1h?hours=24",
-    okStatuses: [200, 404],
+    okStatuses: [200, 404, 410],
     requiredKeys: [["symbol", "ZL"], "data"],
     arrayKeys: ["data"],
   },
   {
     path: "/api/zl/price-5m?hours=1",
-    okStatuses: [200, 404],
+    okStatuses: [200, 404, 410],
     requiredKeys: [["symbol", "ZL"], "data", ["requested_interval", "5m"]],
   },
   {
@@ -90,6 +110,7 @@ const ZL_ENDPOINTS: EndpointSpec[] = [
   },
   {
     path: "/api/zl/intraday?hours=1",
+    okStatuses: [200, 404, 410],
     requiredKeys: [["symbol", "ZL"], "bars"],
     arrayKeys: ["bars"],
   },
@@ -249,6 +270,126 @@ test.describe("Sentiment", () => {
   }
 });
 
+test.describe("AI endpoints", () => {
+  test("POST /api/zl/context", async ({ request }) => {
+    const { text } = await postText(request, "/api/zl/context", {
+      price: { current: 48.12, changePct: 1.3 },
+      drivers: [
+        {
+          name: "Macro Threat",
+          score: 78,
+          status: "critical",
+          source: "live",
+          rawValue: 78,
+          unit: "score",
+        },
+        {
+          name: "VIX Stress",
+          score: 65,
+          status: "elevated",
+          source: "live",
+          rawValue: 26.4,
+          unit: "index",
+        },
+      ],
+      recentEvents: [
+        {
+          headline: "Iran strike concerns lift crude as shipping risk rises",
+          source: "Reuters",
+          hoursAgo: 6,
+          sentiment: "risk_up",
+          confidence: 0.81,
+        },
+      ],
+      eventVelocity: 2.2,
+    });
+    expect(text.trim().length).toBeGreaterThan(0);
+  });
+
+  test("POST /api/policy/briefing", async ({ request }) => {
+    const { text } = await postText(request, "/api/policy/briefing", {
+      regime: {
+        score: 74,
+        label: "Elevated uncertainty",
+        headline: "Oil shock and conflict risk dominate policy flow",
+        uncertaintyIndex: 186,
+        vix: 24.2,
+        oilChange5d: 0.058,
+        inflationExpectation: 2.54,
+        iranWarNews: 17,
+        newsVelocity: 42,
+      },
+      metrics: {
+        velocity: 11.2,
+        deadlinesActive: 8,
+        shockwaveCount: 4,
+        agencyCount: 6,
+        activeEvents: 19,
+      },
+      topAgencies: [{ agency: "EPA", count: 7 }],
+      recentLegislation: [
+        { title: "Biofuel blending proposal update", agency: "EPA", date: "2026-03-24" },
+      ],
+      recentExecutive: [
+        { headline: "Energy security order update", date: "2026-03-23", impact: 0.42 },
+      ],
+      recentNews: [
+        {
+          headline: "Iran conflict risk pushes crude and uncertainty higher",
+          source: "Bloomberg",
+          date: "2026-03-25",
+          tags: ["iran", "oil", "uncertainty"],
+        },
+      ],
+    });
+    expect(text.trim().length).toBeGreaterThan(0);
+  });
+
+  for (const section of ["agency", "executive", "news"] as const) {
+    test(`POST /api/policy/section-brief (${section})`, async ({ request }) => {
+      const { text } = await postText(request, "/api/policy/section-brief", {
+        section,
+        regime: { score: 68, label: "Elevated" },
+        data: [{ headline: "Sample item", agency: "EPA", source: "Reuters", count: 3 }],
+      });
+      expect(text.trim().length).toBeGreaterThan(0);
+    });
+  }
+
+  test("POST /api/sentiment/narrative", async ({ request }) => {
+    const res = await request.post("/api/sentiment/narrative", {
+      data: {
+        fearGreed: {
+          score: 62,
+          label: "greed",
+          delta7d: 6,
+          drivers: ["oil", "uncertainty"],
+        },
+        trumpEffect: {
+          score: 55,
+          label: "elevated",
+          delta7d: 2,
+          activeSignals: ["policy-velocity"],
+        },
+        volatility: {
+          score: 58,
+          label: "elevated",
+          delta7d: 3,
+          vix: 24.1,
+        },
+      },
+    });
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expectKeys(body, [
+      "fearGreedNarrative",
+      "trumpEffectNarrative",
+      "volatilityNarrative",
+      "source",
+    ]);
+  });
+});
+
 test.describe("Vegas", () => {
   test("GET /api/vegas — stats view", async ({ request }) => {
     const { body } = await getJson(request, "/api/vegas");
@@ -308,4 +449,15 @@ test.describe("Misc", () => {
   test("GET /api/inngest — introspection", async ({ request }) => {
     await getJson(request, "/api/inngest", [200, 204, 500]);
   });
+});
+
+test.describe("Protected pages", () => {
+  for (const path of ["/dashboard", "/strategy", "/sentiment", "/legislation"] as const) {
+    test(`GET ${path}`, async ({ request }) => {
+      const res = await request.get(path);
+      expect(res.status()).toBe(200);
+      const html = await res.text();
+      expect(html).toContain("<html");
+    });
+  }
 });

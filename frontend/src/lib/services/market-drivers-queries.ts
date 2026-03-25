@@ -48,6 +48,9 @@ export interface MarketDriversRawData {
   legislationCount: number;
   soyTariffNews: number;
   tariffSignal: number | null;
+  inflationExpectation: number | null;
+  inflationDate: string | null;
+  iranWarNewsCount: number;
   // ZL Price
   zlPrice: number | null;
   zlChange5d: number | null;
@@ -88,6 +91,8 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     tpuRows,
     legislationRows,
     soyTariffNewsRows,
+    inflationRows,
+    iranWarNewsRows,
     volSignalRows,
     crushSignalRows,
     chinaSignalRows,
@@ -431,6 +436,42 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
         OR source LIKE 'google_news/war_military/%'
       )
     `),
+    // Inflation expectations (5Y breakeven) for macro threat composition
+    query<{ inflation: number; event_date: string }>(`
+      SELECT value::float8 as inflation, event_date::text as event_date
+      FROM econ.inflation_1d
+      WHERE series_id = 'T5YIE' AND value IS NOT NULL
+      ORDER BY event_date DESC
+      LIMIT 1
+    `).catch(() => [] as { inflation: number; event_date: string }[]),
+    // Iran war / Hormuz / Middle East geopolitical shock feed (7 days)
+    query<{ count: number }>(`
+      WITH candidate_news AS (
+        SELECT headline, content
+        FROM alt.profarmer_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content
+        FROM alt.policy_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT headline, content
+        FROM alt.econ_news_event
+        WHERE event_date >= CURRENT_DATE - INTERVAL '7 days'
+      )
+      SELECT COUNT(DISTINCT md5(COALESCE(headline, '') || '|' || COALESCE(content, '')))::int as count
+      FROM candidate_news
+      WHERE (
+        headline ILIKE '%iran%' OR headline ILIKE '%israel%' OR headline ILIKE '%hormuz%'
+        OR headline ILIKE '%strait of hormuz%' OR headline ILIKE '%middle east%'
+        OR headline ILIKE '%war%' OR headline ILIKE '%missile%' OR headline ILIKE '%red sea%'
+        OR content ILIKE '%strait of hormuz%' OR content ILIKE '%iran%' OR content ILIKE '%war%'
+      )
+    `).catch(() => [{ count: 0 }]),
 
     // === SPECIALIST SIGNALS ===
     query<{ signal: number }>(`
@@ -628,6 +669,9 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     legislationCount: legislationRows[0]?.count ?? 0,
     soyTariffNews: soyTariffNewsRows[0]?.count ?? 0,
     tariffSignal: tariffSignalRows[0]?.signal ?? null,
+    inflationExpectation: inflationRows[0]?.inflation ?? null,
+    inflationDate: inflationRows[0]?.event_date ?? null,
+    iranWarNewsCount: iranWarNewsRows[0]?.count ?? 0,
 
     zlPrice: zlPriceRows[0]?.close ?? null,
     zlChange5d: zlPriceRows[0]?.change_5d ?? null,
@@ -797,6 +841,7 @@ export function buildMarketData(
   return {
     vix: data.vix!,
     ovx: data.ovx,
+    vix3m: data.vix3m,
     boardCrush: data.crush!,
     oilShare: data.oilShare,
     cnyRate: data.cnyRate!,
@@ -806,6 +851,11 @@ export function buildMarketData(
     bdryChange20d: data.bdiyChange20d,
     tpu: data.tpu!,
     emv: data.emv,
+    inflationExpectation: data.inflationExpectation ?? undefined,
+    iranWarNewsCount: data.iranWarNewsCount,
+    clPrice: data.clPrice ?? undefined,
+    clChange5d: data.clChange5d ?? undefined,
+    clChange20d: data.clChange20d ?? undefined,
     scores,
     zlPrice: data.zlPrice ?? undefined,
     zlChange5d: data.zlChange5d ?? undefined,

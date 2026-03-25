@@ -5,6 +5,7 @@ import { FusionBrain } from "@/components/viz/FusionBrain";
 import { ContractImpactCalculator } from "@/components/tools/ContractImpactCalculator";
 import { FactorWaterfall } from "@/components/quant/FactorWaterfall";
 import { WeatherRiskArray } from "@/components/viz/WeatherRiskArray";
+import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
 import {
   Target,
   Shield,
@@ -17,12 +18,12 @@ import {
   Brain,
 } from "lucide-react";
 
-const MORNING_REFRESH_UTC_HOUR = 10;
+const MORNING_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 
 function getMorningRefreshBoundary(now = new Date()): number {
   const boundary = new Date(now);
   if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
-    boundary.setDate(boundary.getDate() - 1);
+    boundary.setUTCDate(boundary.getUTCDate() - 1);
   }
   boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
   return boundary.getTime();
@@ -300,7 +301,7 @@ function createFallbackBrief(reason?: string): BriefData {
         source: "unavailable",
       },
       {
-        name: "Tariffs",
+        name: "Macro Risk",
         score: 0,
         status: "NO DATA",
         impact: "No current signal",
@@ -451,7 +452,7 @@ export default function StrategyPage() {
     };
 
     const cacheKey = [
-      "strategy-ai-context:v2",
+      `strategy-ai-context:${AI_OUTPUT_VERSION}`,
       brief.asOfDate,
       brief.generatedAt,
       brief.dataQuality,
@@ -466,7 +467,7 @@ export default function StrategyPage() {
       let best: { text: string; ts: number } | null = null;
       for (let i = 0; i < localStorage.length; i += 1) {
         const key = localStorage.key(i);
-        if (!key || !key.startsWith("strategy-ai-context:v2|")) continue;
+        if (!key || !key.startsWith(`strategy-ai-context:${AI_OUTPUT_VERSION}|`)) continue;
         try {
           const raw = localStorage.getItem(key);
           if (!raw) continue;
@@ -511,6 +512,7 @@ export default function StrategyPage() {
     fetch("/api/zl/context", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      cache: "no-store",
       body: JSON.stringify(contextPayload),
     })
       .then(async (res) => {
@@ -659,7 +661,11 @@ export default function StrategyPage() {
           const normalized = name.toLowerCase();
           if (normalized.includes("crush") || normalized.includes("energy"))
             return "cell";
-          if (normalized.includes("china") || normalized.includes("tariff"))
+          if (
+            normalized.includes("china") ||
+            normalized.includes("macro") ||
+            normalized.includes("uncertainty")
+          )
             return "macro";
           if (normalized.includes("market") || normalized.includes("vix"))
             return "technical";

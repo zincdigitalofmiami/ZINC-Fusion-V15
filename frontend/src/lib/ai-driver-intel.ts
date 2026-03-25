@@ -1,10 +1,10 @@
 /**
  * AI-Powered Per-Driver Intelligence for ZL
- * Each driver gets its own deep analysis using Claude Sonnet 4.5
+ * Each driver gets its own deep analysis using free OpenRouter GPT-OSS-120B
  *
  * MODEL ROUTING (LOCKED):
- * - This file uses MODEL_DRIVER_INTEL (Sonnet 4.5) for per-card analysis
- * - ai-intelligence.ts uses MODEL_BALANCED_CONDITIONS (Opus 4.5) for synthesis
+ * - This file uses MODEL_DRIVER_INTEL (openai/gpt-oss-120b:free) for per-card analysis
+ * - ai-intelligence.ts uses MODEL_BALANCED_CONDITIONS (openai/gpt-oss-120b:free) for synthesis
  *
  * FRESHNESS REQUIREMENT:
  * - All responses must echo asOfDate and inputTimestamps
@@ -92,7 +92,7 @@ OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 
 const CHINA_EXPERT_PROMPT = `CARD LOCATION: China Tension driver card on the Dashboard. The user sees a score gauge (0-100), CNY/USD exchange rate, FXI ETF 5d/20d changes, and a sparkline.
 
-ZL FOCUS: Explain how China trade dynamics affect ZL (CBOT soybean oil futures) demand and price. China buys ~60% of globally traded soybeans. Weak CNY = Brazil gains competitive advantage over US Gulf = bearish for ZL. Trade war tariffs = China pivots to Brazil within 48h = US export demand cliff = ZL down. Every JSON field must trace to ZL demand/price.
+ZL FOCUS: Explain how China demand dynamics affect ZL (CBOT soybean oil futures) demand and price. China buys ~60% of globally traded soybeans. Weak CNY and slowing growth reduce import appetite and can shift flow away from US origins. Every JSON field must trace to ZL demand/price.
 
 KEY RELATIONSHIPS:
 - CNY/USD: 7.0 psychological, 7.2 PBOC defense, 7.3+ competitive disadvantage for US soy
@@ -104,31 +104,32 @@ OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
   "whatsHappening": "1-2 sentences on China trade conditions and ZL demand impact",
   "macroContext": "Economic factors in China affecting ZL demand (PMI, currency, policy)",
   "supplyDemand": "Export sales pace vs Brazil competition and ZL implications",
-  "geopolitical": "US-China relations, tariff risks, and ZL export demand",
+  "geopolitical": "US-China relations and geopolitical risks affecting ZL export demand",
   "investorSentiment": "How market is pricing China demand risk for ZL",
   "nearTermOutlook": "Next 5-10 day China buying expectations and ZL direction",
   "zlImplication": "Direct impact on ZL - export demand, Gulf basis, price direction"
 }`;
 
-const TARIFF_EXPERT_PROMPT = `CARD LOCATION: Tariff Threat driver card on the Dashboard. The user sees a score gauge (0-100), TPU index value, EMV trade value, and a sparkline.
+const TARIFF_EXPERT_PROMPT = `CARD LOCATION: Macro Threat driver card on the Dashboard. The user sees a score gauge (0-100) plus uncertainty, oil, inflation, geopolitical-news, and volatility components.
 
-ZL FOCUS: Explain how trade policy uncertainty threatens ZL (CBOT soybean oil futures) export demand and price. Retaliatory tariffs cause China to pivot to Brazil within 48h, collapsing Gulf basis and ZL price. TPU is lagging (newspaper coverage), bureaucracy velocity is leading (actual government action). Every JSON field must trace to ZL export demand and price risk.
+ZL FOCUS: Explain how macro shock inputs affect ZL (CBOT soybean oil futures) procurement risk. Prioritize this chain: Iran war / Hormuz risk -> crude oil spike -> biofuel economics tighten -> soybean oil demand pull -> ZL up. Include inflation pressure, policy uncertainty, VIX, and news velocity. Every JSON field must trace to ZL price risk.
 
 KEY RELATIONSHIPS:
-- TPU (Trade Policy Uncertainty) from Baker-Bloom-Davis: <100 calm, 100-200 normal, 200-400 elevated, >400 high
-- EMV Trade = newspaper-based trade policy volatility measure
-- Retaliatory tariffs on US soy = export demand cliff (see 2018-2019)
-- 25%+ tariffs = China switches to Brazil, Gulf basis collapses
+- Iran war / Hormuz disruption = immediate oil supply risk -> higher ZL via biofuel channel
+- VIX spike = risk-off liquidation + wider spreads for ZL
+- Oil 5d surge = higher renewable diesel pull for soybean oil
+- Inflation expectations rising = commodity risk premium and higher replacement costs
+- Uncertainty index + macro news velocity = regime intensity, not just one headline
 
 OUTPUT: Valid JSON only, no markdown. 1-2 sentences per field.
 {
-  "whatsHappening": "1-2 sentences on trade policy environment and ZL risk",
-  "macroContext": "Policy factors affecting ZL export competitiveness",
-  "supplyDemand": "How policy uncertainty is affecting ZL export commitments",
-  "geopolitical": "Trade war status and retaliatory risks to ZL demand",
-  "investorSentiment": "How traders are hedging ZL trade policy risk",
-  "nearTermOutlook": "Next 5-10 day policy events and ZL implications",
-  "zlImplication": "Direct impact on ZL - export demand, Gulf basis, price risk"
+  "whatsHappening": "1-2 sentences on current macro threat regime and ZL impact",
+  "macroContext": "How uncertainty, inflation, and volatility are shaping ZL risk",
+  "supplyDemand": "How oil/biofuel and geopolitical stress alter soybean oil balance",
+  "geopolitical": "Iran-war and related conflict channels relevant to ZL",
+  "investorSentiment": "How funds and hedgers are positioned under this macro regime",
+  "nearTermOutlook": "Next 5-10 day macro path and ZL implications",
+  "zlImplication": "Direct impact on ZL procurement risk and timing"
 }`;
 
 // =============================================================================
@@ -249,7 +250,14 @@ export function generateFallbackDriverIntel(
     data.components.hg_change_20d ?? data.components.fxi_change_20d;
   const bdiyChange =
     data.components.bdiy_change_20d ?? data.components.bdry_change_20d;
-  const tpuValue = data.components.tpu_value ?? data.components.tpu;
+  const uncertaintyValue =
+    data.components.uncertainty_value ??
+    data.components.tpu_value ??
+    data.components.tpu;
+  const oilChange5d =
+    data.components.oil_change_5d ?? data.components.cl_change_5d;
+  const iranWarNewsCount =
+    data.components.iran_war_news_count ?? data.components.energy_news_count;
 
   // PLAIN ENGLISH FOR VEGAS BUYERS - NO QUANT JARGON
   const templates = {
@@ -326,19 +334,19 @@ export function generateFallbackDriverIntel(
     china: {
       whatsHappening:
         data.score >= 65
-          ? `China trade is in trouble. Whether it's tariff threats, weak yuan, or economic slowdown - US soybeans aren't moving. Brazil is eating our lunch.`
+          ? `China demand conditions are weak. A softer yuan and slower industrial momentum are limiting import appetite and keeping pressure on soy complex demand.`
           : data.score >= 45
-            ? `China buying is okay but nothing special. The US faces a permanent 13% tariff vs Brazil's 3%. We're always at a disadvantage - that's just reality.`
-            : `China relations are stable, but don't get excited. Brazil still dominates because of the tariff gap. US exports are steady, not growing.`,
+            ? `China buying is mixed, not a strong demand impulse. Flows are steady but not strong enough to tighten global soybean oil balance.`
+            : `China demand is stable and mostly in line with expectations, so it is not the main shock driver right now.`,
       macroContext:
         cnyRate && cnyRate > 7.2
-          ? `Yuan is weak at ${cnyRate.toFixed(2)}. That makes Brazilian soy even cheaper for Chinese buyers. US gulf is uncompetitive.`
-          : `Currency isn't helping or hurting much. The real issue is the 13% US tariff vs 3% for Brazil.`,
-      supplyDemand: `Here's the math: US soy to China faces 13% tariff. Brazil/Argentina pay 3%. That's a USD 20-30/MT disadvantage before freight. We only win when Brazil runs short.`,
+          ? `Yuan is weak at ${cnyRate.toFixed(2)}, which tends to slow import demand and favor lower-cost origins.`
+          : `Currency conditions are not extreme, so demand sensitivity is mostly about growth and crush economics.`,
+      supplyDemand: `China import pace still sets the marginal tone for global soy/oilseed flows; weaker buying leaves more supply available and caps ZL upside.`,
       geopolitical:
         data.score >= 50
-          ? `Trade war risk is real. Remember 2018-2019? China switched to Brazil overnight. Could happen again.`
-          : `No immediate trade war threat, but the structural disadvantage is permanent. Don't count on China demand surprises.`,
+          ? `Geopolitical friction and policy uncertainty can still reroute flow quickly, so the demand picture can change fast.`
+          : `No immediate geopolitical shock in China trade flow, but surprises remain possible.`,
       investorSentiment:
         hgChange20d !== null && hgChange20d !== undefined && hgChange20d < -5
           ? `Copper is down ${Math.abs(hgChange20d).toFixed(0)}% this month. China demand concerns are real.`
@@ -357,33 +365,36 @@ export function generateFallbackDriverIntel(
     tariff: {
       whatsHappening:
         data.score >= 65
-          ? `Trade policy is a mess. Headlines are flying, threats are escalating. This is the kind of environment where China stops buying overnight. Stay defensive.`
+          ? `Macro risk is elevated. Iran-war headlines, volatile oil, and high uncertainty are all stacking up at once. Stay defensive on coverage timing.`
           : data.score >= 50
-            ? `Trade noise is elevated but no new tariffs yet. Lots of political posturing. Keep an eye on it but don't panic.`
-            : `Trade policy is quiet. No new threats, negotiations stable. The existing 13% US tariff disadvantage isn't going away, but it's not getting worse.`,
+            ? `Macro noise is elevated but not full crisis. Oil, VIX, and uncertainty are above normal, so risk can reprice quickly on news.`
+            : `Macro backdrop is relatively contained. No immediate systemic shock signal from oil, volatility, or geopolitical flow.`,
       macroContext:
-        tpuValue && tpuValue > 300
-          ? `Policy uncertainty at these levels historically means trade war escalation. We saw this in 2018-2019.`
-          : `Trade policy uncertainty is in normal range. Political noise, but no action.`,
+        uncertaintyValue && uncertaintyValue > 200
+          ? `Uncertainty is high enough to keep risk premia elevated across commodities, including soybean oil.`
+          : `Uncertainty is in a manageable range, so fundamentals matter more than panic headlines.`,
       supplyDemand:
-        data.score >= 50
-          ? `Exporters are nervous about forward sales. Buyers are looking at non-US origins just in case.`
-          : `Export sales are tracking normally. No tariff-related disruption.`,
-      geopolitical: `Remember 2018-2019: when 25% tariffs hit, China shifted 20+ million tons of soy demand to Brazil. It can happen again if things escalate.`,
+        oilChange5d !== null && oilChange5d > 0.05
+          ? `Crude oil is up ${(oilChange5d * 100).toFixed(1)}% in 5 days, which strengthens renewable diesel pull for soybean oil and tightens availability.`
+          : `Oil-driven demand pull is not extreme right now, so supply pressure from the energy channel is moderate.`,
+      geopolitical:
+        (iranWarNewsCount ?? 0) >= 4
+          ? `Iran-war/Hormuz coverage is heavy this week (${iranWarNewsCount} headlines), so geopolitical risk to energy supply is a live input for ZL.`
+          : `Geopolitical risk is present but not dominating the tape right now.`,
       investorSentiment:
         data.score >= 50
-          ? `Options market is pricing tariff risk. That's adding premium to soy complex.`
-          : `No tariff premium in the market. Normal positioning.`,
+          ? `Funds are paying up for macro protection, which can keep soybean oil risk premium sticky.`
+          : `Positioning looks closer to normal with less macro-hedging premium.`,
       nearTermOutlook:
         data.score >= 65
-          ? `Watch USTR announcements and China retaliation threats. Could move fast.`
-          : `Calm on the trade front. No imminent policy shocks expected.`,
+          ? `Watch Iran-war flow, VIX spikes, and crude moves daily. This regime can jump from alert to shock quickly.`
+          : `Macro conditions are calmer; monitor headlines, but no immediate shock catalyst is dominant.`,
       zlImplication:
         data.score >= 65
-          ? `DEFENSIVE POSTURE. Tariff escalation would crush US export demand and pressure Gulf basis. Keep coverage light until clarity.`
+          ? `DEFENSIVE POSTURE. Macro shock risk can lift ZL quickly through oil/biofuel channels. Keep coverage layered and avoid waiting for perfect entry.`
           : data.score >= 50
-            ? `STAY ALERT but don't overreact. Political noise, not policy action yet. Normal buying with one eye on headlines.`
-            : `TRADE POLICY IS SUPPORTIVE. No new tariffs, calm environment. Good window to cover your needs.`,
+            ? `STAY ALERT but avoid panic. Keep normal buying cadence with tight monitoring of oil, VIX, and geopolitical headlines.`
+            : `CONDITIONS ARE CONTAINED. Good window to execute scheduled coverage without crisis premium.`,
     },
     energy: {
       whatsHappening:

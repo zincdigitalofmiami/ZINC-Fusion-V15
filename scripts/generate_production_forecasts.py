@@ -62,19 +62,43 @@ def get_latest_zl_close(engine) -> tuple:
     return float(df.iloc[0]["close"]), df.iloc[0]["event_date"]
 
 
+def get_zl_close_at(engine, as_of_date) -> float | None:
+    """Get ZL close price on or before as_of_date for temporal consistency.
+
+    The production_1d row should pair its OOF as_of_date with the ZL close
+    from the same epoch, not today's spot price.  Falls back to the nearest
+    prior close if the exact date has no data (weekends/holidays).
+    """
+    query = """
+        SELECT close
+        FROM mkt.futures_1d
+        WHERE symbol = 'ZL'
+          AND close IS NOT NULL
+          AND event_date <= %s
+        ORDER BY event_date DESC
+        LIMIT 1
+    """
+    df = pd.read_sql(query, engine, params=(as_of_date,))
+    if len(df) == 0:
+        return None
+    return float(df.iloc[0]["close"])
+
+
 def get_latest_oof_by_horizon(engine, horizon: int) -> pd.DataFrame:
     """Get the most recent OOF predicted_price for a given horizon.
 
     Core outputs a single predicted_price (point forecast). We average across
-    CV windows to get the ensemble prediction for the latest trade_date.
+    whatever CV windows exist for the latest trade_date.  The caller should
+    NOT assume 4 windows — the actual count is returned as ``n_windows``.
 
     Returns:
-        DataFrame with columns: trade_date, predicted_price, run_hash
+        DataFrame with columns: trade_date, predicted_price, run_hash, n_windows
     """
     query = """
         SELECT
             trade_date,
             AVG(predicted_price) as predicted_price,
+            COUNT(*) as n_windows,
             MAX(run_hash) as run_hash,
             MAX(run_id::text) as run_id
         FROM training.oof_core_1d
@@ -145,9 +169,22 @@ def check_oof_freshness(
 def compute_residual_offsets(engine, horizon: int) -> dict[str, float]:
     """Compute calibration offsets from historical OOF residuals.
 
-    Residuals = target_value - predicted_price. We take quantiles of the
-    residual distribution to produce p10/p30/p70/p90 ranges around the
+    Residuals = target_value - predicted_price. We take UNCONDITIONAL quantiles
+    of the residual distribution to produce p10/p30/p70/p90 ranges around the
     core price prediction.
+
+    CAVEAT: This produces an additive heuristic interval, not a true conditional
+    forecast quantile.  ``predicted + q30(residuals)`` equals the 30th percentile
+    of the conditional forecast distribution ONLY if the residual distribution is
+    stationary (i.e., the model's error profile does not change over time or
+    across market regimes).  In practice, forecast errors may exhibit
+    heteroscedasticity and regime dependence, so these intervals should be
+    interpreted as approximate.
+
+    Uses the most recent 5000 non-NULL OOF rows across potentially multiple
+    training runs.  Run-specific filtering (by run_hash) is not applied; pooling
+    across runs smooths the residual distribution but dilutes run-specific error
+    structure.
 
     Returns dict with keys: p10_off, p30_off, p70_off, p90_off
     """
@@ -258,15 +295,15 @@ def generate_forecasts():
     logger.info("=" * 60)
 
     with DatabaseConnections() as (engine, conn):
-        # Step 1: Get current ZL price
-        current_price, price_date = get_latest_zl_close(engine)
-        if current_price is None:
+        # Step 1: Verify ZL price data exists at all
+        latest_price, latest_date = get_latest_zl_close(engine)
+        if latest_price is None:
             logger.error(
                 "No ZL close price found in mkt.futures_1d — cannot generate forecasts"
             )
             return False
 
-        logger.info(f"Current ZL close: {current_price:.4f} (as of {price_date})")
+        logger.info(f"Latest ZL close: {latest_price:.4f} (as of {latest_date})")
 
         # Step 1.5: OOF freshness gate (HARD GATE on trained_at recency)
         if not _gate_oof_freshness(engine):
@@ -284,6 +321,24 @@ def generate_forecasts():
             row = df_oof.iloc[0]
             as_of_date = row["trade_date"]
             predicted_price = float(row["predicted_price"])
+            n_windows = int(row["n_windows"])
+            if n_windows < 2:
+                logger.warning(
+                    f"  {horizon}d: Only {n_windows} CV window(s) at {as_of_date} "
+                    f"— ensemble average is weak (expected 4)"
+                )
+            else:
+                logger.info(f"  {horizon}d: Averaging {n_windows} CV windows")
+
+            # Temporal consistency: pair current_price with the OOF epoch,
+            # not today's spot, so the production_1d row is self-consistent.
+            current_price = get_zl_close_at(engine, as_of_date)
+            if current_price is None:
+                current_price = latest_price
+                logger.warning(
+                    f"  {horizon}d: No ZL close at {as_of_date}, "
+                    f"falling back to latest ({latest_date})"
+                )
 
             # Calibrate ALL quantile ranges from historical residuals
             offsets = compute_residual_offsets(engine, horizon)

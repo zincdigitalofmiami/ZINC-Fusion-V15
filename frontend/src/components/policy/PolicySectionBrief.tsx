@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
 
-const MORNING_REFRESH_UTC_HOUR = 10;
+const MORNING_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 
 function getMorningRefreshBoundary(now = new Date()): number {
   const boundary = new Date(now);
   if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
-    boundary.setDate(boundary.getDate() - 1);
+    boundary.setUTCDate(boundary.getUTCDate() - 1);
   }
   boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
   return boundary.getTime();
@@ -55,8 +56,8 @@ export function PolicySectionBrief({ section, regime, data, dataVersion }: Props
     setDone(false);
 
     (async () => {
-      const cacheKey = `policy-section-brief:v2:${section}:${regime.score}:${regime.label}:${dataVersion ?? "na"}`;
-      const cachePrefix = `policy-section-brief:v2:${section}:`;
+      const cacheKey = `policy-section-brief:${AI_OUTPUT_VERSION}:${section}:${regime.score}:${regime.label}:${dataVersion ?? "na"}`;
+      const cachePrefix = `policy-section-brief:${AI_OUTPUT_VERSION}:${section}:`;
       try {
         if (typeof window !== "undefined") {
           const cachedRaw = localStorage.getItem(cacheKey);
@@ -83,6 +84,7 @@ export function PolicySectionBrief({ section, regime, data, dataVersion }: Props
         const res = await fetch("/api/policy/section-brief", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          cache: "no-store",
           body: JSON.stringify({ section, regime, data }),
         });
         if (!res.ok || !res.body) {

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PolicyAiBriefing — Streams a Claude-generated policy intelligence briefing.
+ * PolicyAiBriefing — Streams a free-model policy intelligence briefing.
  *
  * Uses the Vercel AI SDK useCompletion hook to stream text from
  * /api/policy/briefing. Shows a pulsing indicator while generating,
@@ -10,13 +10,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
 
-const MORNING_REFRESH_UTC_HOUR = 10;
+const MORNING_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 
 function getMorningRefreshBoundary(now = new Date()): number {
   const boundary = new Date(now);
   if (boundary.getUTCHours() < MORNING_REFRESH_UTC_HOUR) {
-    boundary.setDate(boundary.getDate() - 1);
+    boundary.setUTCDate(boundary.getUTCDate() - 1);
   }
   boundary.setUTCHours(MORNING_REFRESH_UTC_HOUR, 0, 0, 0);
   return boundary.getTime();
@@ -27,8 +28,12 @@ interface PolicyAiBriefingProps {
     score: number;
     label: string;
     headline?: string;
-    tpu: number;
-    emv: number;
+    uncertaintyIndex: number;
+    vix: number;
+    oilChange5d: number;
+    inflationExpectation: number;
+    iranWarNews: number;
+    newsVelocity: number;
   };
   metrics: {
     velocity: number | null;
@@ -48,14 +53,14 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
   const [briefing, setBriefing] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const cacheKey = `policy-ai-briefing:v2:${props.regime.score}:${props.regime.label}:${props.dataVersion ?? "na"}`;
+  const cacheKey = `policy-ai-briefing:${AI_OUTPUT_VERSION}:${props.regime.score}:${props.regime.label}:${props.dataVersion ?? "na"}`;
 
   const getLastDeliveredBriefing = useCallback((): string | null => {
     if (typeof window === "undefined") return null;
     let best: { text: string; ts: number } | null = null;
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
-      if (!key || !key.startsWith("policy-ai-briefing:v2:")) continue;
+      if (!key || !key.startsWith(`policy-ai-briefing:${AI_OUTPUT_VERSION}:`)) continue;
       try {
         const raw = localStorage.getItem(key);
         if (!raw) continue;
@@ -107,6 +112,7 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
       const res = await fetch("/api/policy/briefing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify(props),
       });
 
@@ -181,7 +187,7 @@ export function PolicyAiBriefing(props: PolicyAiBriefingProps) {
             AI Policy Briefing
           </span>
           <span className="text-[10px] bg-cyan-900/30 text-cyan-400/60 px-1.5 py-0.5 rounded border border-cyan-800/30">
-            Anthropic
+            OpenRouter Free
           </span>
         </div>
       </div>

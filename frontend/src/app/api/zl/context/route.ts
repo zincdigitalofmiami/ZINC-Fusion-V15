@@ -10,13 +10,17 @@
  * When events contradict lagging driver scores, the AI leads with events.
  */
 
-import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import {
+  AI_DAILY_REFRESH_UTC_HOUR,
+  AI_OUTPUT_VERSION,
+  MODEL_DRIVER_INTEL,
+} from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
 
-const AI_REFRESH_UTC_HOUR = 10;
+const AI_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 const zlContextCache = new Map<string, string>();
 
 function getAiDayKey(now = new Date()): string {
@@ -31,7 +35,7 @@ function getCacheKey(payload: unknown): string {
   const payloadHash = createHash("sha256")
     .update(JSON.stringify(payload))
     .digest("hex");
-  return `${getAiDayKey()}:${payloadHash}`;
+  return `${AI_OUTPUT_VERSION}:${getAiDayKey()}:${payloadHash}`;
 }
 
 interface ContextRequest {
@@ -181,15 +185,15 @@ DOMAIN KNOWLEDGE (use this to connect the dots):
 - Crude oil price drives biodiesel economics: when crude surges, soybean oil demand as feedstock rises, pulling ZL prices up.
 - Middle East conflict / Strait of Hormuz closure → crude oil supply shock → energy prices spike → soybean oil gets pulled up as biofuel feedstock.
 - Iran produces ~3.2M bbl/day. Hormuz handles 20% of world oil. Any disruption is massively bullish for energy and ag-energy complex.
-- China buys 60% of global soybeans. US-China tariffs / trade war = demand destruction for US exports, but shifts Brazil premium.
+- China buys 60% of global soybeans. Weak CNY and slower China growth can reduce import demand and pressure export flows.
 - Sanctions on Iran/Russia = supply disruption bullish signal for energy and downstream commodity complex.
 - India is #1 edible oil importer. India's reaction to oil shocks directly impacts palm/soy oil trade flows.
 - EU, Japan, Korea energy dependence means their response to Hormuz disruption amplifies the shock.
 `.trim();
 
-  const CARD_PREAMBLE = `CARD LOCATION: This renders as the AI Market Context card on the Strategy page. The user sees the ZL price chart with horizontal Target Zones, 4 driver score gauges (VIX Stress, Crush Pressure, China Tension, Tariff Threat), forecast horizon confidence bars, and an Event Pulse timeline.
+  const CARD_PREAMBLE = `CARD LOCATION: This renders as the AI Market Context card on the Strategy page. The user sees the ZL price chart with horizontal Target Zones, 5 driver score gauges (VIX Stress, Crush Pressure, China Tension, Macro Threat, Energy Stress), forecast horizon confidence bars, and an Event Pulse timeline.
 
-ZL FOCUS: Tell a soybean oil procurement buyer what matters RIGHT NOW for ZL price direction. Connect driver scores and event headlines to ZL through specific mechanisms: VIX spike → fund liquidation → ZL selling. Crush margin squeeze → processor slowdowns → less oil supply → ZL up. China tariff → export diversion → Gulf basis collapse → ZL down. Crude surge → biofuel economics → ZL pulled up.`;
+ZL FOCUS: Tell a soybean oil procurement buyer what matters RIGHT NOW for ZL price direction. Connect driver scores and event headlines to ZL through specific mechanisms: VIX spike -> fund liquidation -> ZL selling. Crush margin squeeze -> processor slowdowns -> less oil supply -> ZL up. Iran-war/oil shock -> biofuel economics -> ZL up. Inflation and uncertainty spikes -> risk premia and wider ranges.`;
 
   const systemPrompt = hasEvents
     ? `${CARD_PREAMBLE}

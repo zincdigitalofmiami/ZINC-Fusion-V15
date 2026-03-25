@@ -3,27 +3,25 @@
 ZINC-FUSION-V15: L5-A Monte Carlo Risk Engine
 
 Runs Monte Carlo simulation using calibrated quantile distributions from
-forecasts.production_1d to generate risk metrics, probability distributions,
-and path statistics for visualization.
+forecasts.production_1d and pre-computed GARCH volatility artifacts from
+forecasts.garch_forecasts.
 
-NON-NEGOTIABLES:
-- Monte Carlo consumes L4 distributions ONLY (no point estimates + noise)
-- Input is calibrated P10/P50/P90 quantiles from meta_ensemble
-- Asymmetric volatility respecting quantile geometry
-- Regime-adjusted volatility multipliers
-- No user sliders or controls - deterministic from inputs
-- Generates VaR, CVaR, full probability distributions
+GARCH artifacts are produced by scripts/run_garch.py and MUST exist before
+this script runs.  Monte Carlo never fits GARCH and never falls back to
+asymmetric diffusion.
 
 Architecture (L5-A):
-- Input: P10/P50/P90 from meta_ensemble + vol_regime
-- Process: Asymmetric path simulation with regime adjustment
-- Output: monte_carlo_runs, probability_distributions, risk_metrics
-- Visuals: Path percentiles for pinball/density rendering
+- Input: P30/P50/P70 + P10_cal/P90_cal from forecasts.production_1d
+         + daily_vol_path from forecasts.garch_forecasts
+- Process: Student-t(df=5) path simulation driven by persisted vol path
+- Output: forecasts.monte_carlo_runs, forecasts.probability_distributions,
+          analytics.risk_metrics, forecasts.production_1d (zone probs)
 
 Usage:
     python scripts/run_monte_carlo.py --horizon 63 --dry-run
     python scripts/run_monte_carlo.py --horizon 63
     python scripts/run_monte_carlo.py --horizon all
+    python scripts/run_monte_carlo.py --horizon all --history-limit 1
 """
 
 import argparse
@@ -39,14 +37,10 @@ import pandas as pd
 import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import Json, execute_batch
-from scipy import stats
 
 # Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-# GARCH volatility forecasting
-from src.fusion.forecasting.volatility import garch_volatility_for_monte_carlo
 
 # Setup logging
 logging.basicConfig(
@@ -66,15 +60,6 @@ N_SIMULATIONS = 10000
 VAR_LEVELS = [0.01, 0.05, 0.10]  # 1%, 5%, 10% VaR
 PERCENTILES = [1, 5, 10, 25, 50, 75, 90, 95, 99]
 RANDOM_SEED = 42
-
-# Regime volatility multipliers (from L5-A spec)
-REGIME_MULTIPLIERS = {
-    "high": 1.5,
-    "elevated": 1.25,
-    "normal": 1.0,
-    "low": 0.7,
-    "suppressed": 0.5,
-}
 
 
 @dataclass
@@ -102,29 +87,29 @@ def get_postgres_connection():
     return psycopg2.connect(database_url)
 
 
-def load_production_predictions(conn, horizon: int) -> pd.DataFrame:
+def load_production_predictions(conn, horizon: int, history_limit: int) -> pd.DataFrame:
     """Load production forecasts for a given horizon from forecasts.production_1d."""
-    logger.info(f"Loading production forecasts for horizon={horizon}d")
+    logger.info(f"Loading production forecasts for horizon={horizon}d (limit={history_limit})")
 
     with conn.cursor() as cur:
         cur.execute(
             """
-                        SELECT
-                                as_of_date,
-                                current_price,
-                                price_p30,
-                                price_p50,
-                                price_p70,
-                                price_p10_cal,
-                                price_p90_cal
-                        FROM forecasts.production_1d
+            SELECT
+                as_of_date,
+                current_price,
+                price_p30,
+                price_p50,
+                price_p70,
+                price_p10_cal,
+                price_p90_cal
+            FROM forecasts.production_1d
             WHERE horizon = %s
-                            AND current_price IS NOT NULL
-                            AND price_p50 IS NOT NULL
+              AND current_price IS NOT NULL
+              AND price_p50 IS NOT NULL
             ORDER BY as_of_date DESC
-            LIMIT 1000
-        """,
-            (horizon,),
+            LIMIT %s
+            """,
+            (horizon, history_limit),
         )
 
         rows = cur.fetchall()
@@ -177,193 +162,108 @@ def load_production_predictions(conn, horizon: int) -> pd.DataFrame:
     return df
 
 
-def load_historical_returns(conn, lookback_days: int = 500) -> np.ndarray:
-    """Load historical ZL returns for GARCH calibration."""
-    logger.info(f"Loading {lookback_days} days of ZL returns for GARCH...")
+def load_garch_artifact(conn, as_of_date: datetime, horizon: int) -> dict:
+    """Load pre-computed GARCH volatility artifact for a (as_of_date, horizon).
 
+    Raises ValueError if no artifact exists — operator must run
+    scripts/run_garch.py first.
+    """
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT event_date, close
-            FROM "mkt"."futures_1d"
+            SELECT daily_vol_path, annualized_vol_path,
+                   upside_vol_mult, downside_vol_mult,
+                   regime, regime_multiplier, model_version
+            FROM forecasts.garch_forecasts
             WHERE symbol = 'ZL'
-            ORDER BY event_date DESC
-            LIMIT %s
-        """,
-            (lookback_days + 1,),
-        )
-
-        rows = cur.fetchall()
-
-    if len(rows) < 100:
-        logger.warning(f"Only {len(rows)} days of data - GARCH may be unstable")
-        return None
-
-    df = pd.DataFrame(rows, columns=["as_of_date", "close"])
-    df = df.sort_values("as_of_date")
-    returns = df["close"].pct_change().dropna().values
-
-    logger.info(f"  Loaded {len(returns)} daily returns")
-    return returns
-
-
-def load_current_regime(conn, as_of_date: datetime | None = None) -> str:
-    """Load the current volatility regime from vol_regimes table."""
-    with conn.cursor() as cur:
-        if as_of_date:
-            cur.execute(
-                """
-                SELECT regime
-                FROM "analytics"."vol_regimes"
-                WHERE as_of_date <= %s
-                ORDER BY as_of_date DESC
-                LIMIT 1
+              AND as_of_date = %s
+              AND horizon = %s
+            ORDER BY created_at DESC
+            LIMIT 1
             """,
-                (as_of_date,),
-            )
-        else:
-            cur.execute("""
-                SELECT regime
-                FROM "analytics"."vol_regimes"
-                ORDER BY as_of_date DESC
-                LIMIT 1
-            """)
-
+            (as_of_date, horizon),
+        )
         row = cur.fetchone()
 
-    if row:
-        regime = row[0].lower() if row[0] else "normal"
-        return regime
-    else:
-        return "normal"
+    if row is None:
+        raise ValueError(
+            f"Missing required GARCH forecast for horizon={horizon} "
+            f"as_of_date={as_of_date}. Run scripts/run_garch.py first."
+        )
+
+    daily_vol_path = np.array(row[0], dtype=np.float64)
+    annualized_vol_path = np.array(row[1], dtype=np.float64)
+    upside_vol_mult = float(row[2])
+    downside_vol_mult = float(row[3])
+    regime = row[4]
+    regime_multiplier = float(row[5]) if row[5] is not None else 1.0
+    model_version = row[6]
+
+    # Validate: path length must equal horizon
+    if len(daily_vol_path) != horizon:
+        raise ValueError(
+            f"daily_vol_path length {len(daily_vol_path)} != horizon {horizon} "
+            f"for as_of_date={as_of_date}"
+        )
+
+    # Validate: multipliers must be finite positive
+    if not (np.isfinite(upside_vol_mult) and upside_vol_mult > 0):
+        raise ValueError(f"upside_vol_mult is not finite positive: {upside_vol_mult}")
+    if not (np.isfinite(downside_vol_mult) and downside_vol_mult > 0):
+        raise ValueError(f"downside_vol_mult is not finite positive: {downside_vol_mult}")
+
+    return {
+        "daily_vol_path": daily_vol_path,
+        "annualized_vol_path": annualized_vol_path,
+        "upside_vol_mult": upside_vol_mult,
+        "downside_vol_mult": downside_vol_mult,
+        "regime": regime,
+        "regime_multiplier": regime_multiplier,
+        "garch_model_version": model_version,
+    }
 
 
-def simulate_paths_asymmetric(
-    p10: float,
-    p50: float,
-    p90: float,
+def simulate_paths_from_garch_path(
     start_price: float,
-    horizon: int,
+    daily_vol_path: np.ndarray,
+    upside_mult: float,
+    downside_mult: float,
     rng: np.random.Generator,
-    vol_regime: str = "normal",
-    n_sims: int = N_SIMULATIONS,
+    n_sims: int = 10000,
 ) -> np.ndarray:
-    """
-    Simulate price paths using asymmetric diffusion (L5-A spec).
+    """Simulate price paths from a pre-computed GARCH daily volatility path.
 
-    The quantile spread (P90-P10) defines the uncertainty envelope.
-    Asymmetry between upper and lower tails is preserved.
+    Uses Student-t(df=5) shocks normalized to unit variance, with asymmetric
+    volatility adjustment based on shock direction.
 
     Args:
-        p10: 10th percentile forecast (floor)
-        p50: 50th percentile forecast (median)
-        p90: 90th percentile forecast (ceiling)
         start_price: Current price level
-        horizon: Forecast horizon in days
-        rng: Local numpy Generator for reproducible, thread-safe randomness
-        vol_regime: Current volatility regime
+        daily_vol_path: Array of daily volatilities (length = horizon),
+                        already regime-adjusted by run_garch.py
+        upside_mult: Multiplier for positive shocks (from GJR-GARCH gamma)
+        downside_mult: Multiplier for negative shocks
+        rng: Local numpy Generator for reproducible randomness
         n_sims: Number of simulations
 
     Returns:
-        Array of shape (n_sims, horizon+1) with simulated paths
+        Array of shape (n_sims, horizon+1) with simulated price paths
     """
-    # Extract implied volatilities from quantile spread
-    # Using inverse normal CDF: P10 = mu - 1.28*sigma, P90 = mu + 1.28*sigma
-    z_90 = stats.norm.ppf(0.90)  # ≈ 1.28
-
-    # Asymmetric volatilities (total spread over horizon)
-    sigma_down = (p50 - p10) / abs(stats.norm.ppf(0.10))  # Downside vol
-    sigma_up = (p90 - p50) / z_90  # Upside vol
-
-    # Regime adjustment
-    vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
-    sigma_down *= vol_mult
-    sigma_up *= vol_mult
-
-    # Convert to daily volatility
-    daily_sigma_down = sigma_down / np.sqrt(horizon)
-    daily_sigma_up = sigma_up / np.sqrt(horizon)
+    horizon = len(daily_vol_path)
 
     # Initialize paths
     paths = np.zeros((n_sims, horizon + 1))
     paths[:, 0] = start_price
 
-    # Generate shocks (local rng — reproducible regardless of call order)
-    shocks = rng.normal(0, 1, (n_sims, horizon))
+    # Generate Student-t(df=5) shocks, normalized to unit variance
+    shocks = rng.standard_t(df=5, size=(n_sims, horizon))
+    shocks = shocks / np.std(shocks)
 
-    # Apply asymmetric diffusion
+    # Apply GARCH-based diffusion with asymmetric vol
     for t in range(horizon):
         current_prices = paths[:, t]
 
-        # Asymmetric volatility based on shock direction
-        vol = np.where(shocks[:, t] > 0, daily_sigma_up, daily_sigma_down)
-
-        # Price change (multiplicative for returns)
-        returns = shocks[:, t] * vol
-        paths[:, t + 1] = current_prices * (1 + returns)
-
-    return paths
-
-
-def simulate_paths_garch(
-    p10: float,
-    p50: float,
-    p90: float,
-    start_price: float,
-    horizon: int,
-    historical_returns: np.ndarray,
-    rng: np.random.Generator,
-    vol_regime: str = "normal",
-    n_sims: int = N_SIMULATIONS,
-) -> np.ndarray:
-    """
-    Simulate price paths using GARCH volatility forecasting.
-
-    This is the ENHANCED simulation method that uses GJR-GARCH to forecast
-    volatility with proper clustering and asymmetry (leverage effect).
-
-    Raises RuntimeError if GARCH fitting fails — caller handles fallback
-    with explicit model labeling.
-
-    Args:
-        p10: 10th percentile forecast (floor)
-        p50: 50th percentile forecast (median)
-        p90: 90th percentile forecast (ceiling)
-        start_price: Current price level
-        horizon: Forecast horizon in days
-        historical_returns: Historical return series for GARCH calibration
-        rng: Local numpy Generator for reproducible, thread-safe randomness
-        vol_regime: Current volatility regime
-        n_sims: Number of simulations
-
-    Returns:
-        Array of shape (n_sims, horizon+1) with simulated paths
-    """
-    # Fit GARCH model — let failures propagate to caller for honest labeling
-    garch_vol, upside_mult, downside_mult = garch_volatility_for_monte_carlo(
-        historical_returns, horizon=horizon, model_type="gjr-garch"
-    )
-    logger.info(
-        f"  GARCH volatility forecast: mean={np.mean(garch_vol):.4f}, terminal={garch_vol[-1]:.4f}"
-    )
-
-    # Regime adjustment on top of GARCH
-    vol_mult = REGIME_MULTIPLIERS.get(vol_regime, 1.0)
-
-    # Initialize paths
-    paths = np.zeros((n_sims, horizon + 1))
-    paths[:, 0] = start_price
-
-    # Generate shocks (local rng — reproducible regardless of call order)
-    shocks = rng.standard_t(df=5, size=(n_sims, horizon))  # Fat-tailed shocks
-    shocks = shocks / np.std(shocks)  # Normalize to unit variance
-
-    # Apply GARCH-based diffusion
-    for t in range(horizon):
-        current_prices = paths[:, t]
-
-        # Daily volatility from GARCH forecast + regime adjustment
-        daily_vol = garch_vol[t] * vol_mult
+        # Daily vol from pre-computed GARCH path (already regime-adjusted)
+        daily_vol = daily_vol_path[t]
 
         # Asymmetric adjustment based on shock direction
         vol = np.where(
@@ -379,7 +279,7 @@ def simulate_paths_garch(
 
 def compute_path_percentiles(paths: np.ndarray) -> dict:
     """Compute percentiles at each timestep for visualization."""
-    n_sims, n_steps = paths.shape
+    _n_sims, n_steps = paths.shape
 
     path_percentiles = {}
     for p in PERCENTILES:
@@ -388,64 +288,6 @@ def compute_path_percentiles(paths: np.ndarray) -> dict:
         ]
 
     return path_percentiles
-
-
-def fit_distribution(p10: float, p50: float, p90: float) -> tuple[float, float]:
-    """Fit a logistic distribution to quantiles.
-
-    Uses P10, P50, P90 to estimate location (mu) and scale (s) parameters
-    of a logistic distribution.
-
-    Returns:
-    - mu: location parameter (median)
-    - s: scale parameter
-    """
-    # For logistic distribution:
-    # P(X < x) = 1 / (1 + exp(-(x - mu) / s))
-    #
-    # At P10: 0.10 = 1 / (1 + exp(-(p10 - mu) / s))
-    # At P50: 0.50 = 1 / (1 + exp(-(p50 - mu) / s)) => p50 = mu
-    # At P90: 0.90 = 1 / (1 + exp(-(p90 - mu) / s))
-    #
-    # From P10 and P90:
-    # logit(0.10) = -(p10 - mu) / s
-    # logit(0.90) = -(p90 - mu) / s
-    #
-    # logit(0.10) = ln(0.10/0.90) ≈ -2.197
-    # logit(0.90) = ln(0.90/0.10) ≈ +2.197
-
-    mu = p50  # Median is the location
-
-    # Calculate scale from P10 and P90
-    logit_10 = np.log(0.10 / 0.90)  # ≈ -2.197
-    logit_90 = np.log(0.90 / 0.10)  # ≈ +2.197
-
-    # s = (p90 - mu) / logit_90 or s = (mu - p10) / (-logit_10)
-    s_from_p90 = (p90 - mu) / logit_90
-    s_from_p10 = (mu - p10) / (-logit_10)
-
-    # Average the two estimates
-    s = (s_from_p90 + s_from_p10) / 2
-
-    # Ensure positive scale
-    s = max(s, 0.001)
-
-    return mu, s
-
-
-def run_simulation(
-    mu: float, s: float, rng: np.random.Generator, n_simulations: int = N_SIMULATIONS
-) -> np.ndarray:
-    """Run Monte Carlo simulation using logistic distribution.
-
-    Returns array of simulated returns.
-    """
-    # Use local rng for reproducibility (scipy accepts numpy Generator)
-    simulated_returns = stats.logistic.rvs(
-        loc=mu, scale=s, size=n_simulations, random_state=rng
-    )
-
-    return simulated_returns
 
 
 def calculate_risk_metrics(
@@ -681,25 +523,26 @@ def write_zone_probabilities(
 
 
 def run_monte_carlo(
-    horizon: int, dry_run: bool = False, use_garch: bool = True
+    horizon: int, dry_run: bool = False, history_limit: int = 1
 ) -> list[RiskMetrics]:
     """Run Monte Carlo simulation for a given horizon (L5-A).
 
+    Consumes pre-computed GARCH volatility artifacts from forecasts.garch_forecasts.
+    Fails hard if the required GARCH artifact is missing — run scripts/run_garch.py first.
+
     Transaction safety: ALL writes for a horizon are committed atomically.
-    Model labeling: Tracks which simulation model actually ran (GARCH vs asymmetric).
 
     Args:
         horizon: Forecast horizon in days
         dry_run: If True, validate without running
-        use_garch: If True, use GARCH volatility (recommended). Falls back to asymmetric if fails.
+        history_limit: Number of most-recent production rows to process
     """
     logger.info("=" * 60)
     logger.info(f"L5-A MONTE CARLO SIMULATION @ {horizon}d")
     logger.info("=" * 60)
     logger.info(f"  N_SIMULATIONS: {N_SIMULATIONS:,}")
-    logger.info(f"  GARCH volatility: {'ENABLED' if use_garch else 'DISABLED'}")
-    logger.info("  Asymmetric diffusion: ENABLED")
-    logger.info("  Regime adjustment: ENABLED")
+    logger.info(f"  History limit: {history_limit}")
+    logger.info("  GARCH source: forecasts.garch_forecasts (pre-computed)")
 
     # Local RNG — reproducible regardless of call order or thread context
     rng = np.random.default_rng(RANDOM_SEED)
@@ -708,7 +551,7 @@ def run_monte_carlo(
 
     try:
         # Load production forecast predictions (includes staleness guard)
-        predictions_df = load_production_predictions(conn, horizon)
+        predictions_df = load_production_predictions(conn, horizon, history_limit)
 
         if predictions_df is None:
             if dry_run:
@@ -718,25 +561,7 @@ def run_monte_carlo(
                 return []
             raise ValueError(f"No production predictions found for horizon={horizon}")
 
-        # Load current regime
-        regime = load_current_regime(conn)
-        logger.info(
-            f"  Current regime: {regime} (multiplier: {REGIME_MULTIPLIERS.get(regime, 1.0)})"
-        )
-
-        # Load historical returns for GARCH (if enabled)
-        historical_returns = None
-        if use_garch:
-            historical_returns = load_historical_returns(conn, lookback_days=500)
-            if historical_returns is None:
-                logger.warning(
-                    "  Insufficient historical data, falling back to asymmetric diffusion"
-                )
-                use_garch = False
-
         all_metrics = []
-        # actual_model tracks what REALLY ran (not what was requested)
-        actual_model = "asym"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         for idx, row in predictions_df.iterrows():
@@ -748,45 +573,22 @@ def run_monte_carlo(
             # Quantile crossing guard — reject nonsensical inputs
             validate_quantile_ordering(p10, p50, p90, as_of_date)
 
-            # L5-A: Path simulation with honest fallback
-            if use_garch and idx == 0:  # Only fit GARCH once for latest prediction
-                try:
-                    paths = simulate_paths_garch(
-                        p10=p10,
-                        p50=p50,
-                        p90=p90,
-                        start_price=current_price,
-                        horizon=horizon,
-                        historical_returns=historical_returns,
-                        rng=rng,
-                        vol_regime=regime,
-                        n_sims=N_SIMULATIONS,
-                    )
-                    actual_model = "garch"
-                except Exception as e:
-                    logger.warning(f"  GARCH failed, falling back to asymmetric: {e}")
-                    paths = simulate_paths_asymmetric(
-                        p10=p10,
-                        p50=p50,
-                        p90=p90,
-                        start_price=current_price,
-                        horizon=horizon,
-                        rng=rng,
-                        vol_regime=regime,
-                        n_sims=N_SIMULATIONS,
-                    )
-                    actual_model = "asym_fallback"
-            else:
-                paths = simulate_paths_asymmetric(
-                    p10=p10,
-                    p50=p50,
-                    p90=p90,
-                    start_price=current_price,
-                    horizon=horizon,
-                    rng=rng,
-                    vol_regime=regime,
-                    n_sims=N_SIMULATIONS,
-                )
+            # Load required GARCH artifact — fails hard if missing
+            garch = load_garch_artifact(conn, as_of_date, horizon)
+            logger.info(
+                f"  GARCH artifact loaded: {garch['garch_model_version']} "
+                f"regime={garch['regime']} mult={garch['regime_multiplier']}"
+            )
+
+            # Simulate paths from persisted GARCH daily vol path
+            paths = simulate_paths_from_garch_path(
+                start_price=current_price,
+                daily_vol_path=garch["daily_vol_path"],
+                upside_mult=garch["upside_vol_mult"],
+                downside_mult=garch["downside_vol_mult"],
+                rng=rng,
+                n_sims=N_SIMULATIONS,
+            )
 
             # Compute terminal returns for risk metrics
             terminal_returns = (paths[:, -1] - paths[:, 0]) / paths[:, 0]
@@ -795,10 +597,9 @@ def run_monte_carlo(
             metrics = calculate_risk_metrics(terminal_returns, as_of_date, horizon)
             all_metrics.append(metrics)
 
-            # Compute path percentiles for visualization (only for latest)
-            if idx == 0:
-                # Model version reflects what ACTUALLY ran
-                model_version = f"mc_l5a_{horizon}d_{actual_model}_{timestamp}"
+            # Compute path percentiles for visualization (only for latest row)
+            if idx == predictions_df.index[0]:
+                model_version = f"mc_l5a_{horizon}d_garch_{timestamp}"
 
                 path_percentiles = compute_path_percentiles(paths)
                 prob_enter_zone, prob_touch_p10, prob_touch_p90 = (
@@ -844,7 +645,6 @@ def run_monte_carlo(
         logger.info(f"\n{'=' * 40}")
         logger.info(f"LATEST RISK METRICS ({latest_metrics.as_of_date.date()})")
         logger.info(f"{'=' * 40}")
-        logger.info(f"  Model used: {actual_model}")
         logger.info(f"  VaR 1%:  {latest_metrics.var_01:+.2%}")
         logger.info(f"  VaR 5%:  {latest_metrics.var_05:+.2%}")
         logger.info(f"  VaR 10%: {latest_metrics.var_10:+.2%}")
@@ -867,7 +667,7 @@ def run_monte_carlo(
         logger.info(f"\n  Committed {saved:,} risk metrics + path data atomically")
 
         logger.info(f"\n{'=' * 60}")
-        logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d (model={actual_model})")
+        logger.info(f"L5-A MONTE CARLO COMPLETE @ {horizon}d (model=garch)")
         logger.info(f"{'=' * 60}")
 
         return all_metrics
@@ -883,6 +683,12 @@ def main():
         type=str,
         required=True,
         help="Horizon in days (5, 21, 63, 126) or 'all'",
+    )
+    parser.add_argument(
+        "--history-limit",
+        type=int,
+        default=1,
+        help="Number of most-recent production rows to process (default: 1)",
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
 
@@ -901,7 +707,7 @@ def main():
     # Run for each horizon
     for horizon in horizons:
         try:
-            run_monte_carlo(horizon, args.dry_run)
+            run_monte_carlo(horizon, args.dry_run, args.history_limit)
         except Exception as e:
             logger.error(f"Failed Monte Carlo @ {horizon}d: {e}")
             raise

@@ -31,13 +31,17 @@ SCHEMA UPDATE 2026-01-17:
 Design Principles:
 - Blanket inclusion WITH enforced curation (120-350 features)
 - All features as OBSERVED covariates (not known)
-- RAW features stored (NO global normalization - prevents leakage)
+- Features are PREPROCESSED but UNNORMALIZED:
+  * TTL-bounded forward fill for low-frequency series
+  * Zero-imputation for daily features with _is_missing flags
+  * Seasonal calendar features computed from date index
+  * Event encoding for WASDE/CFTC (value, delta, age_days, is_release_day)
+  * NO z-score / min-max / global normalization (prevents leakage)
 - Normalization happens in Phase 6 PER CV WINDOW (training data only)
 - ONE immutable matrix per rebuild
-- Target: ~213 features after curation
 
-CRITICAL: This phase stores RAW features. Normalization is NOT done here.
-Phase 6 fits scalers on training windows only to prevent future data leakage.
+CRITICAL: Features are preprocessed (ffill, imputation, encoding) but NOT
+normalized. Phase 6 delegates normalization to AutoGluon per-window.
 """
 
 from __future__ import annotations
@@ -3178,11 +3182,15 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
         validation_result = validate_matrix(df, strict=True)
 
         if not validation_result.passed:
-            logger.error("❌ MATRIX VALIDATION FAILED - NO-GO")
+            logger.error("❌ MATRIX VALIDATION FAILED - HARD GATE")
             for failure in validation_result.hard_failures:
                 logger.error(f"   {failure}")
-            # Still write for debugging, but mark as failed
-            logger.warning("Writing matrix anyway for debugging (marked as invalid)")
+            logger.error(
+                "Matrix will NOT be written. Fix the above failures and re-run. "
+                "Use validate_matrix(df, strict=False) to downgrade to warnings."
+            )
+            conn.close()
+            return False, None, 0
 
         # Enforce guardrails
         df, guardrail_passed = enforce_feature_guardrails(df)
@@ -3231,10 +3239,8 @@ def run(symbol: str = TARGET_SYMBOL) -> tuple[bool, str | None, int]:
             logger.warning(f"   Warnings: {len(validation_result.warnings)}")
         logger.info("=" * 60)
 
-        # Matrix is written and guardrails passed — return success even if
-        # strict validation flagged historical data gaps (options NULLs, dtype
-        # float64 from NaN, OHLCV gaps on non-trading days). AutoGluon handles
-        # NaN natively. Validation warnings are logged but don't block training.
+        # Validation hard failures abort before reaching here (early return above).
+        # Guardrails and row count are the remaining success criteria.
         success = guardrail_passed and rows_written > 0
         return success, matrix_version, feature_count
 

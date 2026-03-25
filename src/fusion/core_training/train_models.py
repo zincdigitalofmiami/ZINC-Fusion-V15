@@ -97,10 +97,11 @@ def load_training_data(conn, symbol: str) -> pd.DataFrame:
     """
     Load core matrix for training.
 
-    IMPORTANT: Data is loaded RAW (not normalized).
+    IMPORTANT: Data is loaded PREPROCESSED but UNNORMALIZED
+    (ffill, imputation, encoding applied in Phase 3; no z-score/min-max).
     AutoGluon handles normalization per-window internally.
     """
-    logger.info("Loading training data (RAW features)...")
+    logger.info("Loading training data (preprocessed, unnormalized features)...")
 
     query = """
         SELECT *
@@ -110,7 +111,7 @@ def load_training_data(conn, symbol: str) -> pd.DataFrame:
     """
     df = pd.read_sql(query, conn, params=(symbol,))
     logger.info(f"   Loaded {len(df):,} rows, {len(df.columns)} columns")
-    logger.info("   ⚠️ Features are RAW - AutoGluon handles normalization per-window")
+    logger.info("   ⚠️ Features are preprocessed but unnormalized - AutoGluon normalizes per-window")
     return df
 
 

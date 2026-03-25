@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
 
-const MARKET_DRIVERS_CACHE_KEY = "market-drivers-ai:v1";
+const MARKET_DRIVERS_CACHE_KEY = `market-drivers-ai:${AI_OUTPUT_VERSION}`;
 // Align with server refresh boundary: 10 AM UTC (see market-drivers/route.ts DAILY_REFRESH_UTC_HOUR)
-const REFRESH_UTC_HOUR = 10;
+const REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 
 function getUtcRefreshBoundary(now = new Date()): number {
   // Use UTC-based boundary matching server refresh schedule
@@ -14,6 +15,15 @@ function getUtcRefreshBoundary(now = new Date()): number {
   }
   boundary.setUTCHours(REFRESH_UTC_HOUR, 0, 0, 0);
   return boundary.getTime();
+}
+
+function getMsUntilNextUtcRefresh(now = new Date()): number {
+  const next = new Date(now);
+  next.setUTCHours(REFRESH_UTC_HOUR, 0, 0, 0);
+  if (now >= next) {
+    next.setUTCDate(next.getUTCDate() + 1);
+  }
+  return Math.max(1_000, next.getTime() - now.getTime());
 }
 
 // =============================================================================
@@ -125,7 +135,7 @@ const DRIVER_NAMES: Record<string, string> = {
   "VIX Stress": "Market Volatility",
   "Crush Pressure": "Crush Margins",
   "China Tension": "China / Trade Risk",
-  "Tariff Threat": "Policy Risk",
+  "Macro Threat": "Macro / Geopolitical",
   "Energy Stress": "Energy / Oil",
 };
 
@@ -153,12 +163,11 @@ const LEVEL_LABELS: Record<string, string> = {
   "Brazil Dominates": "Stable",
   "Trade Diversion": "Trade Diversion",
   "Active Conflict": "Active Conflict",
-  // Tariff Threat levels
-  "Active War": "Active Trade War",
-  "Retaliation Risk": "High Risk",
-  "Elevated Noise": "Elevated",
-  "Background Noise": "Background",
-  "Minimal Threat": "Quiet",
+  // Macro Threat levels
+  "Systemic Shock": "Systemic Shock",
+  "Elevated Risk": "Elevated",
+  Watch: "Watch",
+  Contained: "Contained",
   // Energy Stress levels
   Crisis: "Energy Crisis",
   "Supply Shock": "Supply Shock",
@@ -531,7 +540,10 @@ export function ChrisTop4Drivers() {
 
   const fetchDrivers = useCallback(async () => {
     try {
-      const res = await fetch("/api/market-drivers");
+      const res = await fetch(
+        `/api/market-drivers?v=${encodeURIComponent(AI_OUTPUT_VERSION)}`,
+        { cache: "no-store" },
+      );
       if (!res.ok) {
         const errorText =
           res.status === 504
@@ -574,6 +586,7 @@ export function ChrisTop4Drivers() {
     if (lastDelivered) {
       setData(lastDelivered);
       setLoading(false);
+      setLastUpdate(formatFreshnessLabel(lastDelivered));
     }
     const freshToday = isCacheFreshToday();
     setCacheIsFreshToday(freshToday);
@@ -587,6 +600,22 @@ export function ChrisTop4Drivers() {
       setLastUpdate(formatFreshnessLabel(data));
     }
   }, [cacheIsFreshToday, data]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let timer: number;
+    const scheduleNextRefresh = () => {
+      timer = window.setTimeout(async () => {
+        setCacheIsFreshToday(false);
+        await fetchDrivers();
+        scheduleNextRefresh();
+      }, getMsUntilNextUtcRefresh());
+    };
+
+    scheduleNextRefresh();
+    return () => window.clearTimeout(timer);
+  }, [fetchDrivers]);
 
   const d = data?.drivers;
 
@@ -673,22 +702,28 @@ export function ChrisTop4Drivers() {
           loading={loading}
         />
         <DriverCard
-          label="Tariff Threat"
+          label="Macro Threat"
           data={d?.tariff_threat ?? null}
           metrics={[
             {
-              key: "tpu_value",
-              label: "Policy Uncertainty",
+              key: "uncertainty_value",
+              label: "Uncertainty Index",
               format: (v) => v?.toFixed(0) ?? "--",
             },
             {
-              key: "emv_value",
-              label: "Trade Policy Index",
-              format: (v) => v?.toFixed(0) ?? "--",
+              key: "oil_change_5d",
+              label: "Crude Oil (5D)",
+              format: (v) =>
+                v !== null ? `${v * 100 >= 0 ? "+" : ""}${(v * 100).toFixed(1)}%` : "--",
             },
             {
-              key: "soy_tariff_news_count",
-              label: "Tariff Headlines",
+              key: "iran_war_news_count",
+              label: "Iran/War Headlines",
+              format: (v) => (v !== null ? `${v} this week` : "--"),
+            },
+            {
+              key: "macro_news_count",
+              label: "Macro Headlines",
               format: (v) => (v !== null ? `${v} this week` : "--"),
             },
           ]}
@@ -863,7 +898,9 @@ export function ChrisTop4Compact() {
   const [data, setData] = useState<MarketDriversResponse | null>(null);
 
   useEffect(() => {
-    fetch("/api/market-drivers")
+    fetch(`/api/market-drivers?v=${encodeURIComponent(AI_OUTPUT_VERSION)}`, {
+      cache: "no-store",
+    })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -879,7 +916,7 @@ export function ChrisTop4Compact() {
     { label: "Volatility", score: data?.drivers?.vix_stress?.score ?? null },
     { label: "Crush", score: data?.drivers?.crush_pressure?.score ?? null },
     { label: "China", score: data?.drivers?.china_tension?.score ?? null },
-    { label: "Policy", score: data?.drivers?.tariff_threat?.score ?? null },
+    { label: "Macro", score: data?.drivers?.tariff_threat?.score ?? null },
     { label: "Energy", score: data?.drivers?.energy_stress?.score ?? null },
   ];
 

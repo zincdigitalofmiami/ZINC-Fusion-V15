@@ -7,13 +7,17 @@
  * Pattern follows /api/zl/context and /api/sentiment/narrative.
  */
 
-import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import {
+  AI_DAILY_REFRESH_UTC_HOUR,
+  AI_OUTPUT_VERSION,
+  MODEL_DRIVER_INTEL,
+} from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
 
-const AI_REFRESH_UTC_HOUR = 10;
+const AI_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 const policyBriefingCache = new Map<string, string>();
 
 function getAiDayKey(now = new Date()): string {
@@ -28,7 +32,7 @@ function getCacheKey(payload: unknown): string {
   const payloadHash = createHash("sha256")
     .update(JSON.stringify(payload))
     .digest("hex");
-  return `${getAiDayKey()}:${payloadHash}`;
+  return `${AI_OUTPUT_VERSION}:${getAiDayKey()}:${payloadHash}`;
 }
 
 interface PolicyBriefingRequest {
@@ -36,8 +40,12 @@ interface PolicyBriefingRequest {
     score: number;
     label: string;
     headline?: string;
-    tpu: number;
-    emv: number;
+    uncertaintyIndex: number;
+    vix: number;
+    oilChange5d: number;
+    inflationExpectation: number;
+    iranWarNews: number;
+    newsVelocity: number;
   };
   metrics: {
     velocity: number | null;
@@ -71,8 +79,8 @@ function buildDeterministicBriefing(payload: PolicyBriefingRequest): string {
       : `${payload.metrics.activeEvents} active policy events`;
   const directional =
     score >= 55
-      ? "Policy pressure is skewed risk-up for ZL through biofuel and trade channels."
-      : "Policy pressure is contained, so ZL direction is currently more tied to energy and crush flow.";
+      ? "Macro threat is skewed risk-up for ZL through oil shock, uncertainty, and geopolitical channels."
+      : "Macro threat is contained, so ZL direction is currently more tied to crush and baseline demand flow.";
 
   return `${indicator} — ${payload.regime.label}: ${topAgency} leads with ${topCount} recent actions and ${velocityText}. ${directional}`;
 }
@@ -105,8 +113,13 @@ export async function POST(request: Request) {
   const lines: string[] = [];
 
   // Regime status
-  lines.push(`POLICY THREAT LEVEL: ${payload.regime.score}/100 — "${payload.regime.label}"`);
-  lines.push(`TPU (Trade Policy Uncertainty): ${payload.regime.tpu.toFixed(0)} | EMV Trade: ${payload.regime.emv.toFixed(0)}`);
+  lines.push(`MACRO THREAT LEVEL: ${payload.regime.score}/100 — "${payload.regime.label}"`);
+  lines.push(
+    `Uncertainty Index: ${payload.regime.uncertaintyIndex.toFixed(0)} | VIX: ${payload.regime.vix.toFixed(1)} | CL 5d: ${(payload.regime.oilChange5d * 100).toFixed(1)}%`,
+  );
+  lines.push(
+    `Inflation (T5YIE): ${payload.regime.inflationExpectation.toFixed(2)}% | Iran/War Headlines: ${payload.regime.iranWarNews} | Macro News (7d): ${payload.regime.newsVelocity}`,
+  );
   if (payload.regime.headline) {
     lines.push(`Status: ${payload.regime.headline}`);
   }
@@ -161,12 +174,11 @@ export async function POST(request: Request) {
 
   const system = `CARD LOCATION: This renders as the AI Policy Intelligence card at the top of the Legislation page. The user sees a regime threat gauge (score/100 + label), bureaucracy velocity chart, Federal Register agency filing counts, executive action timeline, and Google News policy headlines surrounding this card.
 
-ZL FOCUS: You decode US government policy actions into ZL (CBOT soybean oil futures) price impact. Causal chains you must trace:
-- EPA RVO / 45Z credit / SRE waivers → RIN prices → renewable diesel demand → soybean oil pull (6B+ lbs/year)
-- USTR Section 301 tariffs → China pivots to Brazil within 48h → US Gulf basis collapse → ZL bearish
-- Agency velocity: EPA + USTR + USDA accelerating simultaneously = regime shift. Normal: 5-10 filings/month. Crisis: 30+.
-- TPU is LAGGING (newspaper coverage). Bureaucracy velocity is LEADING (actual government action). Divergence = edge.
-- Fed cuts → weak USD → bullish ZL. VIX spike + trade escalation → fund liquidation overshoot reverses in 5-10 days.
+ZL FOCUS: You decode macro + policy signals into ZL (CBOT soybean oil futures) price impact. Causal chains you must trace:
+- Iran-war / Hormuz risk -> crude oil spike -> renewable diesel economics -> soybean oil pull -> ZL up
+- Inflation + uncertainty + VIX rise -> higher risk premium and wider ZL ranges
+- EPA RVO / 45Z credit / SRE waivers -> RIN prices -> renewable diesel demand -> soybean oil pull
+- Agency velocity still matters, but tariffs are secondary versus oil + macro regime in the current context.
 
 OUTPUT FORMAT — ONE PARAGRAPH ONLY:
 Start with exactly one indicator: 🟢 CLEAR | 🟡 WATCH | 🟠 ELEVATED | 🔴 CRITICAL — then a short headline.

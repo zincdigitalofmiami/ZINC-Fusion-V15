@@ -46,15 +46,24 @@ def forecast_quantiles(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
 ) -> dict[str, Any]:
-    # Schema: forecast_date (not as_of_date), horizon (not horizon_days)
+    """Return P30/P50/P70 quantiles from forecasts.production_1d.
+
+    Legacy endpoint — the primary frontend uses /api/zl/forecast-targets instead.
+    Response includes p10/p90 mapped from calibrated tails for backward compatibility.
+    """
     rows = _fetch_rows(
         """
-        SELECT forecast_date AS as_of_date, horizon AS horizon_days, p10, p50, p90
-        FROM forecasts.forecast_quantiles
-        WHERE symbol = ?
-        ORDER BY forecast_date ASC
+        SELECT as_of_date,
+               horizon AS horizon_days,
+               price_p10_cal AS p10,
+               price_p30 AS p30,
+               price_p50 AS p50,
+               price_p70 AS p70,
+               price_p90_cal AS p90
+        FROM forecasts.production_1d
+        WHERE price_p50 IS NOT NULL
+        ORDER BY as_of_date ASC
         """,
-        [symbol],
     )
 
     if horizon_days:
@@ -68,42 +77,25 @@ def forecast_bands(
     symbol: str = "ZL",
     horizon_days: list[int] | None = Query(None),
 ) -> dict[str, Any]:
-    if _table_exists("forecasts", "forecast_quantiles"):
-        horizon_col = _first_existing_column(
-            "forecasts", "forecast_quantiles", ["horizon", "horizon_days"]
-        )
-        date_col = _first_existing_column(
-            "forecasts", "forecast_quantiles", ["forecast_date", "as_of_date"]
-        )
-        if not horizon_col or not date_col:
-            rows = []
-        else:
-            rows = _fetch_rows(
-                f"""
-                SELECT {date_col} as as_of_date, {horizon_col} as horizon_days, p10, p50, p90
-                FROM forecasts.forecast_quantiles
-                WHERE symbol = ?
-                ORDER BY {date_col} ASC
-                """,
-                [symbol],
-            )
-    else:
-        # Long-form fallback if only probability_distributions is present.
-        rows = _fetch_rows(
-            """
-            SELECT
-                as_of_date,
-                horizon as horizon_days,
-                MAX(CASE WHEN percentile IN (10, 0.10) THEN value END) AS p10,
-                MAX(CASE WHEN percentile IN (50, 0.50) THEN value END) AS p50,
-                MAX(CASE WHEN percentile IN (90, 0.90) THEN value END) AS p90
-            FROM forecasts.probability_distributions
-            WHERE symbol = ?
-            GROUP BY as_of_date, horizon
-            ORDER BY as_of_date ASC, horizon
-            """,
-            [symbol],
-        )
+    """Return forecast bands from forecasts.production_1d.
+
+    Legacy endpoint — the primary frontend uses /api/zl/forecast-targets instead.
+    Returns P30/P50/P70 as primary zone with P10_cal/P90_cal as tails.
+    """
+    rows = _fetch_rows(
+        """
+        SELECT as_of_date,
+               horizon AS horizon_days,
+               price_p10_cal AS p10,
+               price_p30 AS p30,
+               price_p50 AS p50,
+               price_p70 AS p70,
+               price_p90_cal AS p90
+        FROM forecasts.production_1d
+        WHERE price_p50 IS NOT NULL
+        ORDER BY as_of_date ASC, horizon
+        """,
+    )
 
     if horizon_days:
         rows = [row for row in rows if row["horizon_days"] in horizon_days]

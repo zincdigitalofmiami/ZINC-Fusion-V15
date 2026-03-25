@@ -875,20 +875,31 @@ model forecast_summary_1d {
 }
 
 model garch_forecasts {
-  id              Int       @id @default(autoincrement())
-  symbol          String    @db.VarChar(20)
-  as_of_date      DateTime  @db.Date
-  horizon         Int
-  conditional_vol Float
-  annualized_vol  Float
-  var_01          Float?
-  var_05          Float?
-  cvar_05         Float?
-  vol_lower       Float?
-  vol_upper       Float?
-  model_type      String?   @db.VarChar(50)
-  model_version   String?   @db.VarChar(100)
-  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  id                  Int       @id @default(autoincrement())
+  symbol              String    @db.VarChar(20)
+  as_of_date          DateTime  @db.Date
+  horizon             Int
+  conditional_vol     Float
+  annualized_vol      Float
+  var_01              Float?
+  var_05              Float?
+  cvar_05             Float?
+  vol_lower           Float?
+  vol_upper           Float?
+  model_type          String?   @db.VarChar(50)
+  model_version       String?   @db.VarChar(100)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  daily_vol_path      Json?
+  annualized_vol_path Json?
+  upside_vol_mult     Float?
+  downside_vol_mult   Float?
+  persistence         Float?
+  gamma               Float?
+  lookback_days       Int?
+  regime              String?   @db.VarChar(20)
+  regime_multiplier   Float?
+  source_start_date   DateTime? @db.Date
+  source_end_date     DateTime? @db.Date
 
   @@unique([symbol, as_of_date, horizon, model_version])
   @@index([as_of_date], map: "idx_garch_forecast_date")

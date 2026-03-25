@@ -340,7 +340,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     if (!vix) dataIssues.push('VIX data unavailable')
     if (!crush) dataIssues.push('Crush margin data unavailable')
     if (!cny) dataIssues.push('CNY/USD rate unavailable')
-    if (!tpu) dataIssues.push('Trade policy index unavailable')
+    if (!tpu) dataIssues.push('Macro uncertainty index unavailable')
     if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
 
     // Check data freshness with per-source SLA thresholds
@@ -374,7 +374,14 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       : null
     const tariffScore = tpu !== null
       ? calculateTariffThreat(tpu, rawData.emv, rawData.legislationCount,
-          rawData.soyTariffNews, rawData.tariffSignal).score
+          rawData.soyTariffNews, rawData.tariffSignal, {
+            uncertaintyIndex: tpu,
+            vix,
+            oilChange5d: rawData.clChange5d,
+            inflationExpectation: rawData.inflationExpectation,
+            iranWarNews: rawData.iranWarNewsCount,
+            macroNewsCount: rawData.totalNews,
+          }).score
       : null
     // Trump Effect: weighted_action_score (0–2 scale) → 0–100
     const trumpScore = trumpAction !== null
@@ -423,23 +430,23 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         status: chinaScore === null ? 'NO DATA' : chinaScore >= 65 ? 'FROZEN' : 'BRAZIL PREFERRED',
         impact: chinaScore === null ? 'FX data unavailable — score excluded from average' :
                 chinaScore >= 65 ? 'Trade disrupted, soy demand weak' :
-                `Brazil beats US (CNY at ${cny!.toFixed(2)}) - 13% tariff gap`,
+                `China demand mixed (CNY at ${cny!.toFixed(2)}) - no strong demand impulse`,
         rawValue: cny,
         unit: 'CNY/USD',
         asOfDate: cnyDate,
         source: checkFreshness(cnyDate, 'CNY', 5)
       },
       {
-        name: 'Tariffs',
+        name: 'Macro Risk',
         score: tariffScore ?? 0,
-        status: tariffScore === null ? 'NO DATA' : tariffScore >= 65 ? 'WAR RISK' : tariffScore >= 50 ? 'NOISY' : 'QUIET',
-        impact: tariffScore === null ? 'Policy index unavailable — score excluded from average' :
-                tariffScore >= 65 ? `TPU at ${tpu!.toFixed(0)} - escalation risk, stay defensive` :
-                tariffScore <= 35 ? 'Policy stable, no new threats' : 'Headlines, no action',
+        status: tariffScore === null ? 'NO DATA' : tariffScore >= 65 ? 'HIGH ALERT' : tariffScore >= 50 ? 'ELEVATED' : 'CONTAINED',
+        impact: tariffScore === null ? 'Macro threat inputs unavailable — score excluded from average' :
+                tariffScore >= 65 ? `High macro threat (uncertainty ${tpu!.toFixed(0)}): watch Iran-war, oil, and VIX closely` :
+                tariffScore <= 35 ? 'Macro backdrop contained - no immediate shock signal' : 'Macro headlines elevated but not crisis',
         rawValue: tpu,
         unit: 'index',
         asOfDate: tpuDate,
-        source: checkFreshness(tpuDate, 'TPU', 45)
+        source: checkFreshness(tpuDate, 'Uncertainty', 45)
       },
       {
         name: 'Trump Effect',
@@ -479,7 +486,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
       : staleCount > 0 && avgScore >= 60
       ? `Multiple headwinds. ${staleCount} source${staleCount > 1 ? 's' : ''} past SLA but usable.`
       : avgScore >= 60
-      ? 'Multiple headwinds. Markets nervous, trade uncertain.'
+      ? 'Multiple headwinds. Markets nervous, macro risk elevated.'
       : avgScore <= 40
       ? 'Favorable conditions. Stable markets, solid crush.'
       : staleCount > 0
@@ -495,7 +502,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         { name: 'Markets', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'VIX points', asOfDate: null, source: 'unavailable' },
         { name: 'Crush', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/bushel', asOfDate: null, source: 'unavailable' },
         { name: 'China', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'CNY/USD', asOfDate: null, source: 'unavailable' },
-        { name: 'Tariffs', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' },
+        { name: 'Macro Risk', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'index', asOfDate: null, source: 'unavailable' },
         { name: 'Trump Effect', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'action score', asOfDate: null, source: 'unavailable' },
         { name: 'Energy', score: 0, status: 'ERROR', impact: 'Database query failed', rawValue: null, unit: 'USD/barrel', asOfDate: null, source: 'unavailable' }
       ],
@@ -684,7 +691,7 @@ async function fetchLiveHeadlines(): Promise<Array<{
     // Use separate RSS feeds for better recent coverage
     const queries = [
       'soybean oil crude oil soybeans commodities',
-      'Iran war sanctions tariff "Strait of Hormuz" "oil prices"',
+      'Iran war sanctions inflation uncertainty VIX "Strait of Hormuz" "oil prices"',
     ]
     // Fetch both in parallel (Google News RSS has no rate limit)
     const allItems: Array<{ headline: string; source: string; event_date: string }> = []
@@ -916,11 +923,11 @@ async function getEventPulse(): Promise<EventPulse> {
 
 function getPolicyContext(_avgScore: number): string {
   // Policy context last reviewed: 2026-02-16
-  // Update when: RFS finalized, 45Z credit changes, tariff structure changes
+  // Update when: RFS finalized, 45Z credit changes, macro-risk regime shifts
   return `BIOFUELS DRIVING DEMAND: EPA's 2026 RFS proposals boost biomass-based diesel targets to ~5.6B gallons. ` +
     `45Z tax credit (clean fuel) supports renewable diesel economics. Soy oil now ~40%+ of U.S. production goes to biofuels. ` +
-    `CHINA REALITY: U.S. faces permanent 13% tariff vs Brazil's 3%. We only compete when Brazil runs short. ` +
-    `Don't count on China surprises - price your coverage on domestic biofuel demand, not exports.`
+    `MACRO WATCH: Iran-war/Hormuz headlines, crude oil volatility, inflation pressure, and VIX spikes now dominate short-term price risk. ` +
+    `Price your coverage on biofuel pull + macro shock risk, not one policy headline.`
 }
 
 // =============================================================================
@@ -944,7 +951,7 @@ function generateTLDR(
   if (driverData.dataIssues.length >= 4) {
     outlook = 'LIMITED DATA - most indicators unavailable, proceed with caution'
   } else if (driverData.avgScore >= 60) {
-    outlook = 'CAUTIOUS - multiple headwinds (volatility, trade uncertainty)'
+    outlook = 'CAUTIOUS - multiple headwinds (oil, uncertainty, volatility)'
   } else if (driverData.avgScore <= 40) {
     outlook = 'FAVORABLE - stable markets, strong crush economics'
   } else {
@@ -961,8 +968,8 @@ function generateTLDR(
   }
 
   return `${priceDesc}, ${change}. Outlook: ${outlook}. ${forecastSummary} ` +
-    `Biofuel demand strong (45Z credit, RFS increases), China buying from Brazil (13% tariff gap). ` +
-    `Key watch: VIX, crush margins, trade headlines.`
+    `Biofuel demand remains structural (45Z credit, RFS increases). ` +
+    `Key watch: Iran-war flow, crude oil, inflation, uncertainty, VIX, and macro headlines.`
 }
 
 function getRecommendation(
@@ -1054,15 +1061,15 @@ function getKeyRisks(driverData: {drivers: DriverSummary[], avgScore: number}): 
   const risks: string[] = []
 
   const vix = driverData.drivers.find(d => d.name === 'Markets')
-  const tariff = driverData.drivers.find(d => d.name === 'Tariffs')
+  const macro = driverData.drivers.find(d => d.name === 'Macro Risk')
   const china = driverData.drivers.find(d => d.name === 'China')
   const crush = driverData.drivers.find(d => d.name === 'Crush')
 
   if (vix && vix.score >= 50) {
     risks.push('Market volatility elevated - prices could swing on any headline')
   }
-  if (tariff && tariff.score >= 50) {
-    risks.push('Trade policy noise - China could pull back if tensions escalate')
+  if (macro && macro.score >= 50) {
+    risks.push('Macro threat elevated - Iran-war, oil, inflation, and uncertainty can reprice costs quickly')
   }
   if (china && china.score >= 60) {
     risks.push('China demand weak - exports not providing price support')
@@ -1167,7 +1174,7 @@ export async function GET() {
         const daysStale = d.asOfDate
           ? Math.floor((now.getTime() - new Date(d.asOfDate).getTime()) / (1000 * 60 * 60 * 24))
           : null
-        const slaMap: Record<string, number> = { Markets: 3, VIX: 3, Crush: 5, China: 5, Tariffs: 45, 'Trump Effect': 7 }
+        const slaMap: Record<string, number> = { Markets: 3, VIX: 3, Crush: 5, China: 5, 'Macro Risk': 45, 'Trump Effect': 7 }
         return { driver: d.name, daysStale, sla: slaMap[d.name] ?? 3 }
       })
 

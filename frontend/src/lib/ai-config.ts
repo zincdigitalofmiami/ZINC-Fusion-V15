@@ -26,6 +26,20 @@ export const MODEL_DRIVER_INTEL = 'openai/gpt-oss-120b:free'
 export const MODEL_BALANCED_CONDITIONS = 'openai/gpt-oss-120b:free'
 
 // =============================================================================
+// REFRESH + CACHE VERSIONING
+// =============================================================================
+
+/**
+ * Daily AI refresh boundary in UTC for server/client cache invalidation.
+ */
+export const AI_DAILY_REFRESH_UTC_HOUR = 10
+
+/**
+ * Bump to force regeneration of all AI outputs across dashboard + site.
+ */
+export const AI_OUTPUT_VERSION = '2026-03-25-v3'
+
+// =============================================================================
 // TOKEN LIMITS
 // =============================================================================
 

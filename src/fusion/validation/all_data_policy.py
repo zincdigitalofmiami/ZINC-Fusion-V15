@@ -13,10 +13,10 @@ NO cherry-picking. NO selective data loading. NO "light" feature sets.
 AutoGluon will figure out what's relevant. We provide EVERYTHING.
 
 This policy is NON-NEGOTIABLE and applies to:
-- Core model training (train_core_chronos.py)
+- Core model training (python -m fusion.core_training.run_pipeline)
 - Specialist feature generation (generate_specialist_features.py)
-- Specialist training (train_specialist.py)
-- Meta-ensemble training (train_meta_ensemble.py)
+- Specialist signal generation (generate_specialist_signals.py)
+- Matrix builder (fusion.core_training.build_matrix)
 
 MINIMUM FEATURE REQUIREMENTS:
 - All horizons: 600+ features minimum (daily base)

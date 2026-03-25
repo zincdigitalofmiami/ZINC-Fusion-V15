@@ -5,13 +5,17 @@
  * tailored prompt. Returns streamed text, not JSON.
  */
 
-import { MODEL_DRIVER_INTEL } from "@/lib/ai-config";
+import {
+  AI_DAILY_REFRESH_UTC_HOUR,
+  AI_OUTPUT_VERSION,
+  MODEL_DRIVER_INTEL,
+} from "@/lib/ai-config";
 import { hasOpenRouterApiKey, openRouterCompleteText } from "@/lib/openrouter";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
 
-const AI_REFRESH_UTC_HOUR = 10;
+const AI_REFRESH_UTC_HOUR = AI_DAILY_REFRESH_UTC_HOUR;
 const policySectionBriefCache = new Map<string, string>();
 
 function getAiDayKey(now = new Date()): string {
@@ -26,7 +30,7 @@ function getCacheKey(payload: unknown): string {
   const payloadHash = createHash("sha256")
     .update(JSON.stringify(payload))
     .digest("hex");
-  return `${getAiDayKey()}:${payloadHash}`;
+  return `${AI_OUTPUT_VERSION}:${getAiDayKey()}:${payloadHash}`;
 }
 
 interface SectionRequest {
@@ -38,13 +42,13 @@ interface SectionRequest {
 const SECTION_PROMPTS: Record<string, string> = {
   agency: `CARD LOCATION: Federal Register Agency Activity section on the Legislation page. The user sees a ranked list of agencies with filing counts and a 90-day activity chart.
 
-ZL FOCUS: Identify which agency's filings most directly affect ZL (CBOT soybean oil futures) — EPA (biofuel mandates, RVO, 45Z, SRE waivers → RIN prices → soybean oil demand), USTR (tariffs → China soy diversion → Gulf basis), or USDA (export programs, crop reports). ONE sentence only: name the agency, what they filed, and the specific ZL price implication. No hedging.`,
+ZL FOCUS: Identify which agency's filings most directly affect ZL (CBOT soybean oil futures) in the current macro regime — EPA (biofuel mandates, RVO, 45Z, SRE waivers), DOE/State/Defense (energy security, sanctions, conflict posture), Fed/Treasury-linked regulation (inflation/uncertainty channels), or USDA (export/crop programs). ONE sentence only: name the agency, what they filed, and the specific ZL price implication. No hedging.`,
   executive: `CARD LOCATION: Executive Actions section on the Legislation page. The user sees presidential executive orders and memoranda with dates and ZL impact scores.
 
-ZL FOCUS: Executive orders hit ZL (CBOT soybean oil futures) through biofuel policy (RVO mandates, 45Z credits, SRE waivers → RIN prices → soybean oil demand), trade policy (Section 301, retaliatory tariffs → China pivots to Brazil → Gulf basis collapse), or energy policy (SPR releases, drilling orders → crude price → biofuel economics → ZL). ONE sentence only: name the most impactful action, trace its causal chain to ZL price, and give a directional call. No hedging.`,
+ZL FOCUS: Executive actions hit ZL (CBOT soybean oil futures) through biofuel policy (RVO mandates, 45Z credits, SRE waivers), energy security/geopolitics (Iran-war posture, sanctions, SPR, shipping lanes), and macro policy signaling (inflation/uncertainty risk premium). ONE sentence only: name the most impactful action, trace its causal chain to ZL price, and give a directional call. No hedging.`,
   news: `CARD LOCATION: Policy News Intelligence section on the Legislation page. The user sees Google News headlines with source attribution and category tags.
 
-ZL FOCUS: Filter for headlines that move ZL (CBOT soybean oil futures) — biofuel legislation affecting soybean oil demand, China trade actions affecting US soy exports, EPA regulation affecting RIN/RVO, tariff escalation affecting Gulf basis. ONE sentence only: state the dominant narrative theme and whether it is bullish or bearish for ZL with the specific causal mechanism. No hedging.`,
+ZL FOCUS: Filter for headlines that move ZL (CBOT soybean oil futures) — Iran war / Hormuz / sanctions (oil shock), inflation and uncertainty spikes, VIX regime change, biofuel legislation, and major energy policy actions. ONE sentence only: state the dominant narrative theme and whether it is bullish or bearish for ZL with the specific causal mechanism. No hedging.`,
 };
 
 function buildSectionDeterministic(payload: SectionRequest): string {
@@ -59,13 +63,13 @@ function buildSectionDeterministic(payload: SectionRequest): string {
   if (payload.section === "executive") {
     const headline =
       typeof first.headline === "string" ? first.headline : "Executive policy flow remains the active signal";
-    return `${headline} is the highest-impact executive signal currently on screen and maps directly into ZL through trade posture and biofuel-demand expectations.`;
+    return `${headline} is the highest-impact executive signal currently on screen and maps directly into ZL through energy/biofuel and macro-risk expectations.`;
   }
 
   const headline = typeof first.headline === "string" ? first.headline : null;
   const source = typeof first.source === "string" ? first.source : null;
   if (headline) {
-    return `${headline}${source ? ` (${source})` : ""} is the dominant policy-news narrative and is setting near-term ZL direction through regulation and trade expectations.`;
+    return `${headline}${source ? ` (${source})` : ""} is the dominant policy-news narrative and is setting near-term ZL direction through macro and energy expectations.`;
   }
 
   return "No current signal.";
@@ -96,7 +100,7 @@ export async function POST(request: Request) {
   }
 
   const lines: string[] = [];
-  lines.push(`Policy Threat: ${payload.regime.score}/100 — "${payload.regime.label}"`);
+  lines.push(`Macro Threat: ${payload.regime.score}/100 — "${payload.regime.label}"`);
   lines.push("");
 
   for (const item of payload.data.slice(0, 8)) {
