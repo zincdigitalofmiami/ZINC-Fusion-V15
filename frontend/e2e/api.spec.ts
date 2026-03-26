@@ -15,12 +15,42 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+const PUBLIC_API_PREFIXES = ["/api/health", "/api/auth", "/api/inngest"];
+const authedRequestContexts = new WeakSet<APIRequestContext>();
+
+function isPublicApiPath(path: string): boolean {
+  const pathname = path.split("?")[0] || path;
+  return PUBLIC_API_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+  );
+}
+
+async function ensureAuthenticated(request: APIRequestContext, path: string): Promise<void> {
+  if (!path.startsWith("/api/") || isPublicApiPath(path)) return;
+  if (authedRequestContexts.has(request)) return;
+
+  const authPassword = process.env.AUTH_PASSWORD;
+  if (!authPassword) {
+    throw new Error("Missing AUTH_PASSWORD env var for authenticated API smoke tests");
+  }
+
+  const loginRes = await request.post("/api/auth/login", {
+    data: { password: authPassword },
+  });
+  expect(loginRes.status()).toBe(200);
+  const loginBody = (await loginRes.json()) as Record<string, unknown>;
+  expect(loginBody).toHaveProperty("ok", true);
+
+  authedRequestContexts.add(request);
+}
+
 /** GET a JSON endpoint and assert status is among `okStatuses`. */
 async function getJson(
   request: APIRequestContext,
   path: string,
   okStatuses: number[] = [200],
 ): Promise<{ status: number; body: Record<string, unknown> }> {
+  await ensureAuthenticated(request, path);
   const res = await request.get(path);
   const status = res.status();
   expect(okStatuses).toContain(status);
@@ -42,6 +72,7 @@ async function postText(
   data: Record<string, unknown>,
   okStatuses: number[] = [200],
 ): Promise<{ status: number; text: string }> {
+  await ensureAuthenticated(request, path);
   const res = await request.post(path, { data });
   const status = res.status();
   expect(okStatuses).toContain(status);
@@ -357,6 +388,7 @@ test.describe("AI endpoints", () => {
   }
 
   test("POST /api/sentiment/narrative", async ({ request }) => {
+    await ensureAuthenticated(request, "/api/sentiment/narrative");
     const res = await request.post("/api/sentiment/narrative", {
       data: {
         fearGreed: {

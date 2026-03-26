@@ -195,17 +195,56 @@ export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProp
     const simNodes = graphData.nodes.map(n => ({ ...n }));
     const simLinks = graphData.links.map(l => ({ ...l }));
 
-    // Initial positions
+    // Initial positions by group keeps correlation nodes (Palm/Crude/etc.) visibly connected.
     simNodes.forEach(node => {
-      node.x = clientWidth / 2 + (Math.random() - 0.5) * 100;
-      node.y = clientHeight / 2 + (Math.random() - 0.5) * 100;
+      const groupX =
+        node.group === 'center' ? 0.5 : node.group === 'driver' ? 0.34 : 0.68;
+      node.x = clientWidth * groupX + (Math.random() - 0.5) * 80;
+      node.y = clientHeight * 0.5 + (Math.random() - 0.5) * 180;
     });
 
     const simulation = d3.forceSimulation(simNodes)
-      .force('link', d3.forceLink(simLinks).id((d: unknown) => (d as Node).id).distance((d: unknown) => 160 * (1 - (d as Link).value * 0.4)))
-      .force('charge', d3.forceManyBody().strength(-300))
+      .force(
+        'link',
+        d3.forceLink(simLinks)
+          .id((d: unknown) => (d as Node).id)
+          .distance((d: unknown) => {
+            const link = d as Link;
+            const targetId =
+              typeof link.target === 'string'
+                ? link.target
+                : (link.target as Node).id;
+            const isCorrelation = targetId.startsWith('corr-');
+            const baseDistance = isCorrelation ? 145 : 120;
+            return baseDistance * (1 - link.value * 0.35);
+          })
+          .strength((d: unknown) => ((d as Link).value > 0.6 ? 0.8 : 0.45)),
+      )
+      .force(
+        'charge',
+        d3.forceManyBody().strength((d: unknown) =>
+          (d as Node).group === 'center' ? -420 : -220,
+        ),
+      )
       .force('center', d3.forceCenter(clientWidth / 2, clientHeight / 2))
-      .force('collide', d3.forceCollide().radius((d: unknown) => (d as Node).val + 12).strength(0.7));
+      .force(
+        'x',
+        d3
+          .forceX((d: unknown) => {
+            const node = d as Node;
+            if (node.group === 'center') return clientWidth * 0.5;
+            return node.group === 'driver' ? clientWidth * 0.34 : clientWidth * 0.68;
+          })
+          .strength(0.08),
+      )
+      .force('y', d3.forceY(clientHeight / 2).strength(0.05))
+      .force(
+        'collide',
+        d3
+          .forceCollide()
+          .radius((d: unknown) => (d as Node).val + 14)
+          .strength(0.9),
+      );
 
     simulation.on('tick', () => {
       setNodes([...simulation.nodes()]);
@@ -251,13 +290,19 @@ export function FusionBrain({ drivers = [], correlations = [] }: FusionBrainProp
           {links.map((link, i) => {
             const { x1, y1, x2, y2 } = getCoords(link);
             const isStrong = link.value > 0.6;
+            const lineOpacity = isStrong
+              ? 0.65
+              : Math.max(0.28, Math.min(0.5, 0.2 + link.value * 0.45));
+            const lineWidth = isStrong
+              ? 2.5
+              : Math.max(1.25, link.value * 2);
             return (
               <g key={`link-${i}`}>
                 <line
                   x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke={isStrong ? "#3b82f6" : "#334155"}
-                  strokeWidth={isStrong ? 2 : 1}
-                  strokeOpacity={isStrong ? 0.4 : 0.15}
+                  stroke={isStrong ? "#38bdf8" : "#475569"}
+                  strokeWidth={lineWidth}
+                  strokeOpacity={lineOpacity}
                 />
                 {isStrong && (
                   <motion.circle

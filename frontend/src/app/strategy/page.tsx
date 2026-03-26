@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { FusionBrain } from "@/components/viz/FusionBrain";
-import { ContractImpactCalculator } from "@/components/tools/ContractImpactCalculator";
 import { FactorWaterfall } from "@/components/quant/FactorWaterfall";
 import { WeatherRiskArray } from "@/components/viz/WeatherRiskArray";
 import { AI_DAILY_REFRESH_UTC_HOUR, AI_OUTPUT_VERSION } from "@/lib/ai-config";
@@ -718,7 +717,7 @@ export default function StrategyPage() {
         brief.stalenessWarnings?.length > 0 && (
           <div className="mb-6 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl text-amber-500/70 text-xs flex items-center gap-2">
             <AlertTriangle size={12} />
-            <span>No current signal</span>
+            <span>Stale source data detected</span>
           </div>
         )}
 
@@ -803,12 +802,12 @@ export default function StrategyPage() {
                 {brief.dataQuality === "partial" && (
                   <div className="mt-2 text-[10px] text-amber-500/60 uppercase tracking-wider">
                     {brief.dataIssues.length > 0 &&
-                      "No current signal"}
+                      "missing inputs present"}
                     {brief.dataIssues.length > 0 &&
                       brief.stalenessWarnings?.length > 0 &&
                       " · "}
                     {brief.stalenessWarnings?.length > 0 &&
-                      "No current signal"}
+                      "stale inputs present"}
                   </div>
                 )}
               </div>
@@ -949,9 +948,9 @@ export default function StrategyPage() {
                     }`}
                   >
                     {driver.source === "stale"
-                      ? "NO CURRENT SIGNAL"
+                      ? "STALE"
                       : driver.source === "unavailable"
-                        ? "NO CURRENT SIGNAL"
+                        ? "NO DATA"
                         : driver.status}
                   </span>
                 </div>
@@ -1153,17 +1152,11 @@ export default function StrategyPage() {
       {/* Analysis Tools Grid */}
       <div className="grid grid-cols-12 gap-6 mb-8">
         <div className="col-span-12 lg:col-span-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ContractImpactCalculator
-              currentPrice={brief?.price.current}
-              forecasts={brief?.forecasts}
-            />
-            <FactorWaterfall
-              prevPrice={brief?.price.previousClose ?? 0}
-              currentPrice={brief?.price.current ?? 0}
-              factors={waterfallFactors}
-            />
-          </div>
+          <FactorWaterfall
+            prevPrice={brief?.price.previousClose ?? 0}
+            currentPrice={brief?.price.current ?? 0}
+            factors={waterfallFactors}
+          />
         </div>
 
         <div className="col-span-12 lg:col-span-4">

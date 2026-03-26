@@ -309,17 +309,34 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
     // Plus Trump Effect data (specialist signal + action score)
     const [rawData, trumpSignalData, trumpActionData] = await Promise.all([
       fetchMarketDriversData(),
-      query<{signal: number, as_of_date: string}>(`
-        SELECT signal_1::float8 as signal, as_of_date::text
+      query<{signal: number, confidence: number | null, as_of_date: string}>(`
+        SELECT signal_1::float8 as signal, confidence::float8 as confidence, as_of_date::text
         FROM training.specialist_signals_1d
         WHERE bucket = 'trump_effect' AND as_of_date >= CURRENT_DATE - INTERVAL '45 days' AND abstained = false
         ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => [] as {signal: number, as_of_date: string}[]),
-      query<{score: number, as_of_date: string}>(`
-        SELECT (features->>'weighted_action_score')::float8 as score, as_of_date::text
+      `).catch(() => [] as {signal: number, confidence: number | null, as_of_date: string}[]),
+      query<{
+        score: number | null
+        velocity: number | null
+        neural_signal: number | null
+        neural_confidence: number | null
+        as_of_date: string
+      }>(`
+        SELECT
+          (features->>'weighted_action_score')::float8 as score,
+          (features->>'action_velocity')::float8 as velocity,
+          (features->>'neural_signal')::float8 as neural_signal,
+          (features->>'neural_confidence')::float8 as neural_confidence,
+          as_of_date::text
         FROM training.specialist_features_trump_effect
         ORDER BY as_of_date DESC LIMIT 1
-      `).catch(() => [] as {score: number, as_of_date: string}[])
+      `).catch(() => [] as {
+        score: number | null
+        velocity: number | null
+        neural_signal: number | null
+        neural_confidence: number | null
+        as_of_date: string
+      }[])
     ])
 
     // Extract values from rawData
@@ -334,14 +351,54 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
 
     // Trump Effect data
     const trumpAction = trumpActionData[0]?.score ?? null
+    const trumpVelocity = trumpActionData[0]?.velocity ?? null
+    const trumpSignal = trumpSignalData[0]?.signal ?? null
+    const trumpSignalConfidence = trumpSignalData[0]?.confidence ?? null
+    const trumpNeuralSignal = trumpActionData[0]?.neural_signal ?? null
+    const trumpNeuralConfidence = trumpActionData[0]?.neural_confidence ?? null
     const trumpDate = trumpActionData[0]?.as_of_date ?? trumpSignalData[0]?.as_of_date ?? null
 
+    const clampScore = (value: number): number => Math.max(0, Math.min(100, Math.round(value)))
+    const trumpDerived = (() => {
+      if (trumpAction !== null && Number.isFinite(trumpAction)) {
+        return {
+          score: clampScore(trumpAction * 50),
+          basis: 'weighted_action_score' as const,
+          raw: trumpAction,
+          unit: 'action score',
+        }
+      }
+      if (trumpVelocity !== null && Number.isFinite(trumpVelocity)) {
+        return {
+          score: clampScore(trumpVelocity * 100),
+          basis: 'action_velocity' as const,
+          raw: trumpVelocity,
+          unit: 'action velocity',
+        }
+      }
+      const fallbackSignal = trumpNeuralSignal ?? trumpSignal
+      if (fallbackSignal !== null && Number.isFinite(fallbackSignal)) {
+        const confidenceRaw = trumpNeuralConfidence ?? trumpSignalConfidence ?? 0.5
+        const confidence = Number.isFinite(confidenceRaw)
+          ? Math.max(0, Math.min(1, confidenceRaw))
+          : 0.5
+        const intensity = Math.abs(fallbackSignal)
+        return {
+          score: clampScore(30 + intensity * 50 + confidence * 20),
+          basis: trumpNeuralSignal !== null ? ('neural_signal' as const) : ('signal_1' as const),
+          raw: fallbackSignal,
+          unit: 'signal',
+        }
+      }
+      return null
+    })()
+
     // Track truly MISSING data (no value at all) — these are critical
-    if (!vix) dataIssues.push('VIX data unavailable')
-    if (!crush) dataIssues.push('Crush margin data unavailable')
-    if (!cny) dataIssues.push('CNY/USD rate unavailable')
-    if (!tpu) dataIssues.push('Macro uncertainty index unavailable')
-    if (trumpAction === null) dataIssues.push('Trump Effect data unavailable')
+    if (vix === null) dataIssues.push('VIX data unavailable')
+    if (crush === null) dataIssues.push('Crush margin data unavailable')
+    if (cny === null) dataIssues.push('CNY/USD rate unavailable')
+    if (tpu === null) dataIssues.push('Macro uncertainty index unavailable')
+    if (trumpDerived === null) dataIssues.push('Trump Effect data unavailable')
 
     // Check data freshness with per-source SLA thresholds
     // Stale data is a WARNING, not a critical issue — the data still has value
@@ -384,9 +441,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
           }).score
       : null
     // Trump Effect: weighted_action_score (0–2 scale) → 0–100
-    const trumpScore = trumpAction !== null
-      ? Math.min(100, Math.round(trumpAction * 50))
-      : null
+    const trumpScore = trumpDerived?.score ?? null
     // Energy Stress: crude oil + OVX + energy news
     const energyResult = calculateEnergyStress(
       rawData.clPrice, rawData.clChange5d, rawData.clChange20d,
@@ -434,7 +489,7 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         rawValue: cny,
         unit: 'CNY/USD',
         asOfDate: cnyDate,
-        source: checkFreshness(cnyDate, 'CNY', 5)
+        source: checkFreshness(cnyDate, 'CNY', 7)
       },
       {
         name: 'Macro Risk',
@@ -453,13 +508,13 @@ async function getDriverScores(): Promise<{drivers: DriverSummary[], avgScore: n
         score: trumpScore ?? 0,
         status: trumpScore === null ? 'NO DATA' : trumpScore >= 65 ? 'HIGH IMPACT' : trumpScore >= 40 ? 'ELEVATED' : 'LOW',
         impact: trumpScore === null ? 'Trump Effect data unavailable — score excluded from average' :
-                trumpScore >= 65 ? `Action velocity high (${trumpAction!.toFixed(2)}) - executive actions disrupting markets` :
-                trumpScore >= 40 ? `Moderate activity (${trumpAction!.toFixed(2)}) - watch for escalation` :
-                `Low action velocity (${trumpAction!.toFixed(2)}) - policy stable`,
-        rawValue: trumpAction,
-        unit: 'action score',
+                trumpScore >= 65 ? `Policy shock elevated (${trumpDerived?.basis?.replace('_', ' ') ?? 'fallback'} ${trumpDerived?.raw?.toFixed(2)}) - executive actions disrupting markets` :
+                trumpScore >= 40 ? `Moderate policy pressure (${trumpDerived?.basis?.replace('_', ' ') ?? 'fallback'} ${trumpDerived?.raw?.toFixed(2)}) - watch for escalation` :
+                `Low policy pressure (${trumpDerived?.basis?.replace('_', ' ') ?? 'fallback'} ${trumpDerived?.raw?.toFixed(2)}) - policy stable`,
+        rawValue: trumpDerived?.raw ?? null,
+        unit: trumpDerived?.unit ?? 'action score',
         asOfDate: trumpDate,
-        source: checkFreshness(trumpDate, 'Trump Effect', 7)
+        source: trumpScore === null ? 'unavailable' : checkFreshness(trumpDate, 'Trump Effect', 7)
       },
       {
         name: 'Energy',
@@ -1174,7 +1229,7 @@ export async function GET() {
         const daysStale = d.asOfDate
           ? Math.floor((now.getTime() - new Date(d.asOfDate).getTime()) / (1000 * 60 * 60 * 24))
           : null
-        const slaMap: Record<string, number> = { Markets: 3, VIX: 3, Crush: 5, China: 5, 'Macro Risk': 45, 'Trump Effect': 7 }
+        const slaMap: Record<string, number> = { Markets: 3, VIX: 3, Crush: 5, China: 7, 'Macro Risk': 45, 'Trump Effect': 7 }
         return { driver: d.name, daysStale, sla: slaMap[d.name] ?? 3 }
       })
 
