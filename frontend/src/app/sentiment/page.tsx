@@ -76,6 +76,10 @@ interface FearGreedData {
     news: FearGreedComponent;
     positioning: FearGreedComponent;
     sentiment: FearGreedComponent;
+    zlTrend?: FearGreedComponent;
+    dailyShock?: FearGreedComponent;
+    china?: FearGreedComponent;
+    neural?: FearGreedComponent;
   };
 }
 
@@ -346,6 +350,37 @@ function zoneColor(zone: string): string {
   }
 }
 
+function componentColor(score: number | null): string {
+  if (score == null) return "bg-slate-700";
+  if (score <= 25) return "bg-red-500";
+  if (score <= 40) return "bg-orange-500";
+  if (score <= 55) return "bg-amber-500";
+  if (score <= 70) return "bg-lime-500";
+  return "bg-emerald-500";
+}
+
+function componentTextColor(score: number | null): string {
+  if (score == null) return "text-slate-500";
+  if (score <= 25) return "text-red-400";
+  if (score <= 40) return "text-orange-400";
+  if (score <= 55) return "text-amber-400";
+  if (score <= 70) return "text-lime-400";
+  return "text-emerald-400";
+}
+
+function componentTilt(score: number | null): string {
+  if (score == null) return "N/A";
+  if (score <= 40) return "Risk+";
+  if (score <= 60) return "Mixed";
+  return "Support";
+}
+
+const EMPTY_FG_COMPONENT: FearGreedComponent = {
+  score: null,
+  weight: 0,
+  raw: null,
+};
+
 function volLabel(
   value: number,
   thresholds: [number, number],
@@ -405,6 +440,8 @@ function buildNarrativePayload(metrics: MetricsData) {
           score: metrics.fearGreed.score,
           zone: metrics.fearGreed.zone,
           label: metrics.fearGreed.label,
+          interpretation: metrics.fearGreed.interpretation,
+          components: metrics.fearGreed.components,
         }
       : undefined,
     trumpEffect: metrics.trumpEffect
@@ -627,6 +664,10 @@ export default function SentimentPage() {
                       { label: "Inflation", data: fg.components.inflation },
                       { label: "Iran War", data: fg.components.iranWar },
                       { label: "Macro News", data: fg.components.news },
+                      { label: "ZL Trend", data: fg.components.zlTrend ?? EMPTY_FG_COMPONENT },
+                      { label: "Daily Shock", data: fg.components.dailyShock ?? EMPTY_FG_COMPONENT },
+                      { label: "China Friction", data: fg.components.china ?? EMPTY_FG_COMPONENT },
+                      { label: "Neural Signal", data: fg.components.neural ?? EMPTY_FG_COMPONENT },
                       {
                         label: "Fund Positioning",
                         data: fg.components.positioning,
@@ -643,16 +684,17 @@ export default function SentimentPage() {
                       </div>
                       <div className="flex-1 h-2.5 bg-slate-800 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-700 ${
-                            c.data.score == null
-                              ? "bg-slate-700"
-                              : "bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500"
-                          }`}
+                          className={`h-full rounded-full transition-all duration-700 ${componentColor(c.data.score)}`}
                           style={{ width: `${c.data.score ?? 0}%` }}
                         />
                       </div>
-                      <div className="text-sm font-mono text-slate-300 w-8 text-right">
+                      <div
+                        className={`text-sm font-mono w-9 text-right ${componentTextColor(c.data.score)}`}
+                      >
                         {c.data.score ?? "Pending"}
+                      </div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wide w-14 text-right">
+                        {componentTilt(c.data.score)}
                       </div>
                     </div>
                   ))}

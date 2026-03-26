@@ -277,15 +277,43 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
 
     // === CHINA TENSION DATA ===
     query<{ rate: number; event_date: string }>(`
-      SELECT rate::float8 as rate, event_date::text FROM mkt.fx_1d
-      WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
-      ORDER BY event_date DESC LIMIT 1
+      WITH selected_pair AS (
+        SELECT pair
+        FROM mkt.fx_1d
+        WHERE pair IN ('CNY/USD', 'USD/CNY', 'USDCNY') AND rate IS NOT NULL
+        ORDER BY event_date DESC,
+                 CASE pair
+                   WHEN 'CNY/USD' THEN 0
+                   WHEN 'USD/CNY' THEN 1
+                   ELSE 2
+                 END
+        LIMIT 1
+      )
+      SELECT rate::float8 as rate, event_date::text
+      FROM mkt.fx_1d
+      WHERE pair = (SELECT pair FROM selected_pair) AND rate IS NOT NULL
+      ORDER BY event_date DESC
+      LIMIT 1
     `),
     // CNY 20-day change
     query<{ rate_20d: number }>(`
-      SELECT rate::float8 as rate_20d FROM mkt.fx_1d
-      WHERE pair IN ('USD/CNY', 'USDCNY') AND rate IS NOT NULL
-      ORDER BY event_date DESC OFFSET 20 LIMIT 1
+      WITH selected_pair AS (
+        SELECT pair
+        FROM mkt.fx_1d
+        WHERE pair IN ('CNY/USD', 'USD/CNY', 'USDCNY') AND rate IS NOT NULL
+        ORDER BY event_date DESC,
+                 CASE pair
+                   WHEN 'CNY/USD' THEN 0
+                   WHEN 'USD/CNY' THEN 1
+                   ELSE 2
+                 END
+        LIMIT 1
+      )
+      SELECT rate::float8 as rate_20d
+      FROM mkt.fx_1d
+      WHERE pair = (SELECT pair FROM selected_pair) AND rate IS NOT NULL
+      ORDER BY event_date DESC
+      OFFSET 20 LIMIT 1
     `),
     // HG Futures 20-day and 5-day change (China demand proxy)
     query<{ close: number; change_20d: number; change_5d: number }>(`
@@ -381,11 +409,32 @@ export async function fetchMarketDriversData(): Promise<MarketDriversRawData> {
     `),
 
     // === TARIFF THREAT DATA ===
-    // NOTE: Using USEPUINDXM (main EPU) instead of EPUTRADE - EPUTRADE is stale (Dec 2025)
+    // Prefer daily uncertainty (USEPUINDXD) for freshness; fallback to monthly (USEPUINDXM).
     query<{ tpu: number; tpu_date: string; emv: number | null }>(`
+      WITH daily AS (
+        SELECT value::float8 AS value, event_date::text AS event_date
+        FROM econ.vol_indices_1d
+        WHERE series_id = 'USEPUINDXD' AND value IS NOT NULL
+        ORDER BY event_date DESC
+        LIMIT 1
+      ),
+      monthly AS (
+        SELECT value::float8 AS value, event_date::text AS event_date
+        FROM econ.vol_indices_1d
+        WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL
+        ORDER BY event_date DESC
+        LIMIT 1
+      ),
+      chosen AS (
+        SELECT value, event_date FROM daily
+        UNION ALL
+        SELECT value, event_date FROM monthly
+        WHERE NOT EXISTS (SELECT 1 FROM daily)
+        LIMIT 1
+      )
       SELECT
-        (SELECT value FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1)::float8 as tpu,
-        (SELECT event_date::text FROM econ.vol_indices_1d WHERE series_id = 'USEPUINDXM' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1) as tpu_date,
+        (SELECT value FROM chosen)::float8 as tpu,
+        (SELECT event_date FROM chosen) as tpu_date,
         (SELECT value FROM econ.vol_indices_1d WHERE series_id = 'EMVTRADEPOLEMV' AND value IS NOT NULL ORDER BY event_date DESC LIMIT 1)::float8 as emv
     `),
     // Legislation Velocity (14 days)

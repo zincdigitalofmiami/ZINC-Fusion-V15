@@ -495,11 +495,12 @@ function scoreInflationRisk(value: number | null): number {
   // T5YIE is in percent terms; elevated inflation expectations generally lift
   // commodity risk premia for soybean oil buyers.
   if (value === null || !Number.isFinite(value)) return 50;
-  if (value < 1.8) return 30;
-  if (value < 2.3) return 45;
-  if (value < 2.8) return 60;
-  if (value < 3.2) return 75;
-  return 90;
+  if (value < 1.8) return 35;
+  if (value < 2.1) return 50;
+  if (value < 2.3) return 65;
+  if (value < 2.5) return 78;
+  if (value < 2.8) return 88;
+  return 96;
 }
 
 export function scoreNewsVelocity(count: number, maxCount = 24): number {
@@ -553,11 +554,11 @@ export function calculateTariffThreat(
       : 0;
 
   const weightedScore =
-    uncertaintyScore * 0.24 +
-    vixScore * 0.2 +
-    oilScore * 0.18 +
-    inflationScore * 0.14 +
-    iranWarNewsScore * 0.14 +
+    uncertaintyScore * 0.23 +
+    vixScore * 0.17 +
+    oilScore * 0.14 +
+    inflationScore * 0.19 +
+    iranWarNewsScore * 0.17 +
     macroNewsScore * 0.1;
 
   const score = clamp(weightedScore + legislationAdj + specialistAdj, 0, 100);
@@ -583,11 +584,11 @@ export function calculateTariffThreat(
 
   const headline =
     score >= 80
-      ? "Systemic macro shock: war-risk headlines, oil stress, and volatility are all elevated."
+      ? "Systemic macro shock: inflation, war-risk flow, and volatility are all elevated."
       : score >= 65
-        ? "High-alert macro regime: uncertainty, oil, and VIX are raising procurement risk."
-        : score >= 50
-          ? "Elevated macro pressure: monitor Iran-war flow, inflation, and crude closely."
+        ? "High-alert macro regime: inflation pressure, uncertainty, and VIX are raising procurement risk."
+      : score >= 50
+          ? "Elevated macro pressure: inflation and geopolitical flow are keeping buyer risk elevated."
           : score >= 35
             ? "Watch regime: mixed macro signals with manageable pressure."
             : "Contained macro backdrop: uncertainty and volatility are currently stable.";

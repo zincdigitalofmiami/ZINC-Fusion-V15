@@ -1,7 +1,7 @@
 /**
  * ZL Market Context — AI-powered "What's Happening" summary
  *
- * 1-2 sentence market context using driver scores and event headlines.
+ * Paragraph market context using driver scores and event headlines.
  * Uses OpenRouter GPT-OSS-120B with high reasoning for deep ZL analysis.
  * Works even when some drivers are stale — tells the buyer what we know
  * and what we're missing.
@@ -65,7 +65,7 @@ interface ContextRequest {
 function buildContextDeterministic(payload: ContextRequest): string {
   const priceLine = payload.price
     ? `ZL is ${payload.price.changePct >= 0 ? "up" : "down"} ${Math.abs(payload.price.changePct).toFixed(1)}% at $${payload.price.current.toFixed(2)}.`
-    : "No current signal.";
+    : "Live ZL price is currently unavailable from this payload.";
 
   const availableDrivers = (payload.drivers ?? []).filter((d) => d.source !== "unavailable");
   const topDriver =
@@ -75,21 +75,29 @@ function buildContextDeterministic(payload: ContextRequest): string {
 
   const driverLine = topDriver
     ? `${topDriver.name} is the dominant pressure at ${topDriver.score}/100 (${topDriver.status}).`
-    : "No current signal.";
+    : "No dominant quantitative driver is available in the current payload.";
 
   const missing = (payload.drivers ?? []).filter((d) => d.source === "unavailable");
   const coverageLine =
     missing.length > 0
       ? `Pending fresh data for: ${missing.map((d) => d.name).join(", ")}.`
-      : "";
+      : "All listed core drivers are currently available.";
+  const postureLine =
+    payload.eventVelocity != null && payload.eventVelocity > 2
+      ? `Event velocity is elevated at ${payload.eventVelocity.toFixed(1)}x baseline, so headline flow should be treated as the lead signal.`
+      : "Event velocity is not elevated enough to override the quantitative stack on its own.";
 
   if (payload.recentEvents && payload.recentEvents.length > 0) {
     const event = payload.recentEvents[0];
     const eventLine = `Top event flow: ${event.headline} (${event.source}, ${event.hoursAgo}h ago).`;
-    return [priceLine, driverLine, eventLine, coverageLine].filter(Boolean).join(" ");
+    return [priceLine, driverLine, eventLine, coverageLine, postureLine]
+      .filter(Boolean)
+      .join(" ");
   }
 
-  return [priceLine, driverLine, coverageLine].filter(Boolean).join(" ");
+  return [priceLine, driverLine, coverageLine, postureLine]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export async function POST(request: Request) {
@@ -206,12 +214,12 @@ ${isElevated ? "CRITICAL: Event velocity is extremely elevated. LEAD with what i
 - Name the specific countries, commodities, and percentages. No generic statements.
 - If there's a disconnect between calm driver scores and alarming headlines, say so explicitly.
 
-OUTPUT: 1-2 sentences MAX. No bullet points, no preamble. Write like a Bloomberg terminal flash.`
+OUTPUT: one detailed paragraph only, minimum 4 sentences. No bullet points, no preamble.`
     : `${CARD_PREAMBLE}
 
 ${DOMAIN_CONTEXT}
 
-OUTPUT: 1-2 sentences MAX. Be direct — tell the buyer what matters RIGHT NOW for ZL. If data is stale, acknowledge it briefly. If drivers are missing, say what we're blind to. No preamble, no bullet points, no hedging.`;
+OUTPUT: one detailed paragraph only, minimum 4 sentences. Be direct and specific — tell the buyer what matters RIGHT NOW for ZL. If data is stale, acknowledge it explicitly. If drivers are missing, say what we are blind to. No preamble, no bullet points, no hedging.`;
 
   try {
     const text = await openRouterCompleteText({
@@ -220,7 +228,7 @@ OUTPUT: 1-2 sentences MAX. Be direct — tell the buyer what matters RIGHT NOW f
         { role: "system", content: systemPrompt },
         { role: "user", content: lines.join("\n") },
       ],
-      maxTokens: 250,
+      maxTokens: 700,
       temperature: 0.0,
       reasoning: { effort: "high" },
     });

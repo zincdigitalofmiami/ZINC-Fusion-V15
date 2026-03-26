@@ -165,8 +165,8 @@ export async function GET() {
     const tpu = rawData.tpu as number;
 
     // Derive freshness from actual source dates, not server clock.
-    // Use the oldest source date as the conservative floor and surface ranges
-    // explicitly when the inputs are mixed-vintage.
+    // Use latest date as the primary as_of while still surfacing mixed-vintage
+    // ranges explicitly for transparency.
     const sourceDates = [
       rawData.vixDate,
       rawData.crushDate,
@@ -182,7 +182,7 @@ export async function GET() {
     const mixedVintage =
       sortedSourceDates.length > 1 && asOfDateMin !== asOfDateMax;
 
-    const asOfDate = asOfDateMin;
+    const asOfDate = asOfDateMax;
 
     // 3. Score all 4 drivers
     const vixResult = calculateVixStress(

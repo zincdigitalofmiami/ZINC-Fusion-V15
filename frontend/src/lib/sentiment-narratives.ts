@@ -1,7 +1,31 @@
+export type FearGreedComponentKey =
+  | "vix"
+  | "oil"
+  | "uncertainty"
+  | "inflation"
+  | "iranWar"
+  | "news"
+  | "positioning"
+  | "sentiment"
+  | "zlTrend"
+  | "dailyShock"
+  | "china"
+  | "neural";
+
+export type FearGreedNarrativeComponentPayload = {
+  score?: number | null;
+  weight?: number | null;
+  raw?: number | null;
+};
+
 export type FearGreedNarrativePayload = {
   score?: number | null;
   zone?: string | null;
   label?: string | null;
+  interpretation?: string | null;
+  components?: Partial<
+    Record<FearGreedComponentKey, FearGreedNarrativeComponentPayload>
+  >;
 };
 
 export type TrumpEffectNarrativePayload = {
@@ -41,12 +65,41 @@ function toNum(value: unknown): number | null {
   return null;
 }
 
+function joinList(values: string[]): string {
+  if (values.length === 0) return "macro pressure";
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values[0]}, ${values[1]}, and ${values[2]}`;
+}
+
+function normalizeZoneLabel(value: string | null | undefined): string {
+  if (!value) return "Current";
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function formatMove(value: number, windowLabel: string): string {
   const magnitude = `${Math.abs(value).toFixed(2)}%`;
   if (value > 0) return `rose ${magnitude} in ${windowLabel}`;
   if (value < 0) return `fell ${magnitude} in ${windowLabel}`;
   return `was unchanged (${magnitude}) in ${windowLabel}`;
 }
+
+const FEAR_GREED_LABELS: Record<FearGreedComponentKey, string> = {
+  vix: "VIX stress",
+  oil: "oil shock",
+  uncertainty: "macro uncertainty",
+  inflation: "inflation expectations",
+  iranWar: "Iran-war flow",
+  news: "macro news velocity",
+  positioning: "fund positioning",
+  sentiment: "headline sentiment",
+  zlTrend: "ZL price trend",
+  dailyShock: "daily move shock",
+  china: "China trade friction",
+  neural: "neural geopolitical signal",
+};
 
 export function buildFearGreedNarrative(
   input?: FearGreedNarrativePayload,
@@ -55,15 +108,59 @@ export function buildFearGreedNarrative(
   const score = toNum(input.score);
   if (score === null) return null;
 
-  const bias =
-    score >= 70
-      ? "risk appetite is elevated"
-      : score <= 35
-        ? "risk aversion is elevated"
-        : "signals are balanced";
+  const componentRows = Object.entries(input.components ?? {})
+    .map(([key, value]) => {
+      const componentScore = toNum(value?.score);
+      if (componentScore === null) return null;
+      const componentWeight = toNum(value?.weight) ?? 0.08;
+      return {
+        key: key as FearGreedComponentKey,
+        score: componentScore,
+        contribution: (componentScore - 50) * componentWeight,
+      };
+    })
+    .filter((row): row is {
+      key: FearGreedComponentKey;
+      score: number;
+      contribution: number;
+    } => row !== null);
 
-  const zoneLabel = input.label || input.zone || "current zone";
-  return `Fear & Greed is ${Math.round(score)} (${zoneLabel}); ${bias}. Use this with price and positioning, not as a standalone timing signal.`;
+  const topDrags = componentRows
+    .filter((row) => row.contribution < 0)
+    .sort((a, b) => a.contribution - b.contribution)
+    .slice(0, 3)
+    .map((row) => `${FEAR_GREED_LABELS[row.key]} (${Math.round(row.score)})`);
+  const topSupports = componentRows
+    .filter((row) => row.contribution > 0)
+    .sort((a, b) => b.contribution - a.contribution)
+    .slice(0, 2)
+    .map((row) => `${FEAR_GREED_LABELS[row.key]} (${Math.round(row.score)})`);
+
+  const dragPhrase = joinList(topDrags);
+  const supportPhrase = joinList(topSupports);
+  const zoneLabel = input.label || normalizeZoneLabel(input.zone);
+  const severeMacro =
+    componentRows.some((row) =>
+      (row.key === "uncertainty" ||
+        row.key === "inflation" ||
+        row.key === "iranWar" ||
+        row.key === "vix" ||
+        row.key === "zlTrend") &&
+      row.score <= 30
+    );
+
+  const regimeSentence =
+    score <= 35
+      ? "This is a risk-off regime with concentrated upside price pressure risk for buyers."
+      : score <= 58 && severeMacro
+        ? "The headline score sits near neutral, but the tape is not balanced because core macro drivers are still stressed."
+        : score <= 58
+          ? "The regime is mixed and transitionary, so directional conviction should come from confirming market structure."
+          : score <= 75
+            ? "Risk appetite is elevated, but this still requires confirmation from liquidity and positioning behavior."
+            : "Risk appetite appears stretched, so extension risk is high without fresh confirmation.";
+
+  return `Fear & Greed is ${Math.round(score)} (${zoneLabel}). The dominant downside pressures are ${dragPhrase}${topSupports.length > 0 ? `, while ${supportPhrase} are the primary offsets` : ""}. ${regimeSentence} ${input.interpretation ?? "Use this composite as a regime filter paired with price, not as a standalone trigger."}`;
 }
 
 export function buildTrumpNarrative(
@@ -109,7 +206,7 @@ export function buildTrumpNarrative(
       ? ""
       : ` with policy=${Math.round(supportingItems ?? 0)}, market=${Math.round(marketItems ?? 0)}, regulatory=${Math.round(regulatoryItems ?? 0)}`;
 
-  return `You are looking at ${title}: ${activityText}${velocityText}; ${scoreText}; ${corroborationText}${detailTail}; ${responseText}. Use this with price and positioning to confirm whether policy flow is real enough to change procurement timing${procurementLabel ? ` (${procurementLabel})` : ""}, not as a standalone trigger.`;
+  return `You are looking at ${title}. Policy flow currently shows ${activityText}${velocityText}, with ${scoreText} and ${corroborationText}${detailTail}. Market response is ${responseText}, which tells you whether policy pressure is actually transmitting into ZL behavior. Procurement posture is ${procurementLabel ?? "not classified"}${procurementLabel ? ` (${procurementLabel})` : ""}, so treat this as a direct execution-risk signal rather than generic political noise.`;
 }
 
 export function buildVolatilityNarrative(
@@ -141,7 +238,7 @@ export function buildVolatilityNarrative(
       ? "realized volatility unavailable"
       : `21d realized ${realized.toFixed(1)}%`;
 
-  return `You are looking at the volatility stack: ${vixState}; ${ovxState}; ${realizedState}. Use this with price action and positioning to size urgency and coverage pace, not as a standalone timing signal.`;
+  return `You are looking at the volatility stack: ${vixState}, ${ovxState}, and ${realizedState}. This configuration defines execution risk directly because VIX and OVX determine macro shock sensitivity while realized volatility reflects how much ZL is already moving day to day. When this stack stays elevated, procurement timing errors become more expensive and coverage pacing should tighten. Use this read as a tactical risk budget input paired with price action and liquidity conditions, not as a standalone trigger.`;
 }
 
 export function buildSentimentNarratives(input: {

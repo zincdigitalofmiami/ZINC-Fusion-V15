@@ -37,7 +37,7 @@ export const AI_DAILY_REFRESH_UTC_HOUR = 10
 /**
  * Bump to force regeneration of all AI outputs across dashboard + site.
  */
-export const AI_OUTPUT_VERSION = '2026-03-25-v3'
+export const AI_OUTPUT_VERSION = '2026-03-25-v4'
 
 // =============================================================================
 // TOKEN LIMITS

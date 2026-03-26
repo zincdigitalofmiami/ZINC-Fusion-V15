@@ -141,11 +141,11 @@ function RegimeBadge({ regime }: { regime: RegimeState }) {
           <div className="text-[10px] text-slate-600 uppercase tracking-wider font-bold mb-2">
             Score Components
           </div>
-          <ComponentBar label="Uncertainty (24%)" value={tc.uncertainty_score} detail={`Index: ${tc.uncertainty_value}`} />
-          <ComponentBar label="VIX (20%)" value={tc.vix_score} detail={tc.vix_value !== null ? `VIX: ${tc.vix_value}` : "N/A"} />
-          <ComponentBar label="Oil (18%)" value={tc.oil_score} detail={tc.oil_change_5d !== null ? `5d: ${(tc.oil_change_5d * 100).toFixed(1)}%` : "N/A"} />
-          <ComponentBar label="Inflation (14%)" value={tc.inflation_score} detail={tc.inflation_value !== null ? `T5YIE: ${tc.inflation_value.toFixed(2)}%` : "N/A"} />
-          <ComponentBar label="Iran/War (14%)" value={tc.iran_war_news_score} detail={`${tc.iran_war_news_count} articles/7d`} />
+          <ComponentBar label="Uncertainty (23%)" value={tc.uncertainty_score} detail={`Index: ${tc.uncertainty_value}`} />
+          <ComponentBar label="VIX (17%)" value={tc.vix_score} detail={tc.vix_value !== null ? `VIX: ${tc.vix_value}` : "N/A"} />
+          <ComponentBar label="Oil (14%)" value={tc.oil_score} detail={tc.oil_change_5d !== null ? `5d: ${(tc.oil_change_5d * 100).toFixed(1)}%` : "N/A"} />
+          <ComponentBar label="Inflation (19%)" value={tc.inflation_score} detail={tc.inflation_value !== null ? `T5YIE: ${tc.inflation_value.toFixed(2)}%` : "N/A"} />
+          <ComponentBar label="Iran/War (17%)" value={tc.iran_war_news_score} detail={`${tc.iran_war_news_count} articles/7d`} />
           <ComponentBar label="Macro News (10%)" value={tc.macro_news_score} detail={`${tc.macro_news_count} articles/7d`} />
         </div>
       )}

@@ -122,6 +122,41 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v));
 }
 
+type FearGreedComponentKey =
+  | "vix"
+  | "oil"
+  | "uncertainty"
+  | "inflation"
+  | "iranWar"
+  | "news"
+  | "positioning"
+  | "sentiment"
+  | "zlTrend"
+  | "dailyShock"
+  | "china"
+  | "neural";
+
+type FearGreedComponent = {
+  score: number;
+  weight: number;
+  raw: number;
+};
+
+const FEAR_GREED_COMPONENT_LABELS: Record<FearGreedComponentKey, string> = {
+  vix: "VIX stress",
+  oil: "oil shock",
+  uncertainty: "macro uncertainty",
+  inflation: "inflation expectations",
+  iranWar: "Iran-war flow",
+  news: "macro news velocity",
+  positioning: "fund positioning",
+  sentiment: "headline sentiment",
+  zlTrend: "ZL price trend",
+  dailyShock: "daily move shock",
+  china: "China trade friction",
+  neural: "neural geopolitical signal",
+};
+
 /** VIX → 0-100 greed scale: 12→100, 20→60, 30→20, 50+→0 */
 function mapVixToFearGreed(vix: number): number {
   if (vix < 12) return 100;
@@ -129,6 +164,124 @@ function mapVixToFearGreed(vix: number): number {
   if (vix < 30) return clamp(60 - ((vix - 20) / 10) * 40, 20, 60);
   if (vix < 50) return clamp(20 - ((vix - 30) / 20) * 20, 0, 20);
   return 0;
+}
+
+/**
+ * Buyer-centric price trend score:
+ * - Rising ZL = worse for buyers (lower score)
+ * - Falling ZL = better for buyers (higher score)
+ */
+function mapZlTrendToFearGreed(ret5d: number | null): number {
+  if (ret5d == null || !Number.isFinite(ret5d)) return 50;
+  if (ret5d <= -5) return 62;
+  if (ret5d <= -2) return 56;
+  if (ret5d <= 0) return 45;
+  if (ret5d <= 2) return 34;
+  if (ret5d <= 5) return 22;
+  if (ret5d <= 10) return 12;
+  return 6;
+}
+
+/**
+ * Oversized daily moves are bad for execution regardless of direction.
+ * Ratio compares absolute 1d move against expected daily sigma from 21d realized vol.
+ */
+function mapDailyShockToFearGreed(
+  ret1dPct: number | null,
+  realized21dPct: number | null,
+): number {
+  if (
+    ret1dPct == null ||
+    !Number.isFinite(ret1dPct) ||
+    realized21dPct == null ||
+    !Number.isFinite(realized21dPct)
+  ) {
+    return 50;
+  }
+
+  const dailySigmaPct = Math.max(realized21dPct / Math.sqrt(252), 0.4);
+  const ratio = Math.abs(ret1dPct) / dailySigmaPct;
+
+  if (ratio <= 0.75) return 58;
+  if (ratio <= 1.25) return 42;
+  if (ratio <= 1.75) return 28;
+  if (ratio <= 2.5) return 14;
+  return 6;
+}
+
+function mapChinaFrictionToFearGreed(chinaTradeFrictionCount: number): number {
+  if (chinaTradeFrictionCount <= 1) return 50;
+  if (chinaTradeFrictionCount <= 4) return 38;
+  if (chinaTradeFrictionCount <= 8) return 26;
+  if (chinaTradeFrictionCount <= 14) return 14;
+  return 6;
+}
+
+function mapNeuralToFearGreed(
+  neuralSignal: number | null,
+  neuralConfidence: number | null,
+): number {
+  if (neuralSignal == null || !Number.isFinite(neuralSignal)) return 40;
+
+  const confidence =
+    neuralConfidence != null && Number.isFinite(neuralConfidence)
+      ? clamp(neuralConfidence, 0, 1)
+      : 0.5;
+  const magnitude = Math.min(1, Math.abs(neuralSignal));
+  const directionalPenalty = neuralSignal > 0 ? 14 : 3;
+  const score = 52 - magnitude * 45 * (0.5 + confidence * 0.5) - directionalPenalty;
+  return clamp(Math.round(score), 3, 70);
+}
+
+function formatDriverList(labels: string[]): string {
+  if (labels.length === 0) return "macro pressure";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels[0]}, ${labels[1]}, and ${labels[2]}`;
+}
+
+function buildFearGreedInterpretation(
+  score: number,
+  components: Record<FearGreedComponentKey, FearGreedComponent>,
+): string {
+  const rankedContributions = (Object.entries(components) as [
+    FearGreedComponentKey,
+    FearGreedComponent,
+  ][])
+    .map(([key, component]) => ({
+      key,
+      contribution: (component.score - 50) * component.weight,
+    }))
+    .sort((a, b) => a.contribution - b.contribution);
+
+  const dominantDrags = rankedContributions
+    .filter((entry) => entry.contribution < 0)
+    .slice(0, 3)
+    .map((entry) => FEAR_GREED_COMPONENT_LABELS[entry.key]);
+  const dragSummary = formatDriverList(dominantDrags);
+  const macroStressStillHigh =
+    components.uncertainty.score <= 25 ||
+    components.iranWar.score <= 25 ||
+    components.inflation.score <= 25 ||
+    components.vix.score <= 30 ||
+    components.zlTrend.score <= 25;
+
+  if (score <= 20) {
+    return `Risk-off conditions are extreme; ${dragSummary} are driving the composite lower. Assume procurement pressure remains elevated until these drags ease.`;
+  }
+  if (score <= 45) {
+    return `Risk tone is defensive; ${dragSummary} are the dominant drags right now. Treat rebounds as fragile unless these inputs improve.`;
+  }
+  if (score <= 58 && macroStressStillHigh) {
+    return `The headline score sits near neutral, but regime risk is not balanced; ${dragSummary} still show material stress. Use this as a caution signal, not a green light.`;
+  }
+  if (score <= 58) {
+    return "Signals are mixed and close to neutral. Use price structure and positioning for tactical timing.";
+  }
+  if (score <= 75) {
+    return "Risk appetite is elevated, but monitor macro stress inputs for reversal risk.";
+  }
+  return "Risk appetite appears stretched; avoid treating this alone as a timing trigger.";
 }
 
 function computeFearGreed(
@@ -141,79 +294,100 @@ function computeFearGreed(
   crudeRet5d: number | null,
   iranWarNewsCount: number,
   macroNewsCount: number,
+  zlRet5d: number | null,
+  zlRet1d: number | null,
+  realized21d: number | null,
+  chinaTradeFrictionCount: number,
+  neuralSignal: number | null,
+  neuralConfidence: number | null,
 ) {
   const total = bullish + bearish;
   const sentimentRaw = total > 0 ? bullish / total : 0.5;
   const vixScore = vix != null ? mapVixToFearGreed(vix) : 50;
-  const posScore = mmPercentile ?? 50;
-  const sentScore = sentimentRaw * 100;
+  const posScore = clamp(mmPercentile ?? 50, 0, 100);
+  const sentScore = clamp(sentimentRaw * 100, 0, 100);
 
   const uncertaintyScore =
     uncertaintyIndex == null
-      ? 50
+      ? 45
       : uncertaintyIndex < 80
-        ? 75
-        : uncertaintyIndex < 125
-          ? 60
-          : uncertaintyIndex < 175
-            ? 45
-            : uncertaintyIndex < 250
-              ? 30
-              : 15;
+        ? 70
+        : uncertaintyIndex < 120
+          ? 58
+          : uncertaintyIndex < 170
+            ? 42
+            : uncertaintyIndex < 220
+              ? 25
+              : uncertaintyIndex < 280
+                ? 12
+                : 6;
 
   const inflationScore =
     inflationExpectation == null
-      ? 50
+      ? 45
       : inflationExpectation < 1.8
-        ? 60
-        : inflationExpectation < 2.3
+        ? 62
+        : inflationExpectation < 2.1
           ? 52
-          : inflationExpectation < 2.8
-            ? 42
-            : inflationExpectation < 3.2
+          : inflationExpectation < 2.3
+            ? 40
+            : inflationExpectation < 2.5
               ? 30
-              : 18;
+              : inflationExpectation < 2.7
+                ? 20
+                : inflationExpectation < 3
+                  ? 12
+                  : 6;
 
   const oilScore =
     crudeRet5d == null
-      ? 50
-      : crudeRet5d <= -6
-        ? 75
-        : crudeRet5d <= -2
-          ? 60
-          : crudeRet5d <= 2
-            ? 50
-            : crudeRet5d <= 5
-              ? 35
-              : crudeRet5d <= 10
-                ? 20
-                : 10;
+      ? 45
+      : crudeRet5d <= -10
+        ? 48
+        : crudeRet5d <= -5
+          ? 46
+          : crudeRet5d <= 0
+            ? 44
+            : crudeRet5d <= 3
+              ? 45
+              : crudeRet5d <= 6
+                ? 28
+                : crudeRet5d <= 10
+                  ? 16
+                  : 8;
 
   const iranWarScore =
     iranWarNewsCount <= 0
-      ? 60
+      ? 56
       : iranWarNewsCount <= 2
-        ? 50
+        ? 46
         : iranWarNewsCount <= 5
-          ? 35
+          ? 30
           : iranWarNewsCount <= 9
-            ? 22
-            : 12;
+            ? 18
+            : iranWarNewsCount <= 14
+              ? 10
+              : 4;
 
   const newsScore =
     macroNewsCount <= 5
-      ? 60
+      ? 58
       : macroNewsCount <= 12
-        ? 50
+        ? 46
         : macroNewsCount <= 20
-          ? 40
+          ? 34
           : macroNewsCount <= 30
-            ? 30
-            : 20;
+            ? 24
+            : 14;
 
-  const components = {
-    vix: { score: Math.round(vixScore), weight: 0.22, raw: vix ?? 0 },
-    oil: { score: Math.round(oilScore), weight: 0.18, raw: crudeRet5d ?? 0 },
+  const zlTrendScore = mapZlTrendToFearGreed(zlRet5d);
+  const dailyShockScore = mapDailyShockToFearGreed(zlRet1d, realized21d);
+  const chinaScore = mapChinaFrictionToFearGreed(chinaTradeFrictionCount);
+  const neuralScore = mapNeuralToFearGreed(neuralSignal, neuralConfidence);
+
+  const components: Record<FearGreedComponentKey, FearGreedComponent> = {
+    vix: { score: Math.round(vixScore), weight: 0.13, raw: vix ?? 0 },
+    oil: { score: Math.round(oilScore), weight: 0.07, raw: crudeRet5d ?? 0 },
     uncertainty: {
       score: Math.round(uncertaintyScore),
       weight: 0.16,
@@ -221,24 +395,44 @@ function computeFearGreed(
     },
     inflation: {
       score: Math.round(inflationScore),
-      weight: 0.12,
+      weight: 0.15,
       raw: inflationExpectation ?? 0,
     },
     iranWar: {
       score: Math.round(iranWarScore),
-      weight: 0.12,
+      weight: 0.14,
       raw: iranWarNewsCount,
     },
-    news: { score: Math.round(newsScore), weight: 0.10, raw: macroNewsCount },
+    news: { score: Math.round(newsScore), weight: 0.06, raw: macroNewsCount },
     positioning: {
       score: Math.round(posScore),
-      weight: 0.06,
+      weight: 0.03,
       raw: mmPercentile ?? 50,
     },
     sentiment: {
       score: Math.round(sentScore),
-      weight: 0.04,
+      weight: 0.02,
       raw: sentimentRaw,
+    },
+    zlTrend: {
+      score: Math.round(zlTrendScore),
+      weight: 0.08,
+      raw: zlRet5d ?? 0,
+    },
+    dailyShock: {
+      score: Math.round(dailyShockScore),
+      weight: 0.05,
+      raw: zlRet1d ?? 0,
+    },
+    china: {
+      score: Math.round(chinaScore),
+      weight: 0.06,
+      raw: chinaTradeFrictionCount,
+    },
+    neural: {
+      score: Math.round(neuralScore),
+      weight: 0.05,
+      raw: neuralSignal ?? 0,
     },
   };
 
@@ -256,28 +450,19 @@ function computeFearGreed(
 
   const zone =
     score <= 20 ? "extreme_fear"
-    : score <= 40 ? "fear"
-    : score <= 60 ? "neutral"
-    : score <= 80 ? "greed"
+    : score <= 45 ? "fear"
+    : score <= 58 ? "neutral"
+    : score <= 75 ? "greed"
     : "extreme_greed";
 
   const label =
     score <= 20 ? "Extreme Fear"
-    : score <= 40 ? "Fear"
-    : score <= 60 ? "Neutral"
-    : score <= 80 ? "Greed"
+    : score <= 45 ? "Fear"
+    : score <= 58 ? "Neutral"
+    : score <= 75 ? "Greed"
     : "Extreme Greed";
 
-  const interpretation =
-    score <= 20
-      ? "Risk aversion is extreme; wait for price confirmation before treating it as exhaustion."
-      : score <= 40
-        ? "Risk tone is defensive; use price and positioning to confirm any buying window."
-        : score <= 60
-          ? "Signals are balanced; lean on price structure and positioning for timing."
-          : score <= 80
-            ? "Risk appetite is elevated; prices may be getting extended."
-            : "Risk appetite looks stretched; avoid treating this alone as a timing trigger.";
+  const interpretation = buildFearGreedInterpretation(score, components);
 
   return {
     score,
@@ -321,6 +506,7 @@ export async function GET() {
       sentimentRatioResult,
       iranWarNewsResult,
       macroNewsResult,
+      chinaTradeFrictionNewsResult,
     ] = await Promise.all([
       // 1. Current ZL price from the serving contract.
       safeValue(getZlLiveSnapshot()),
@@ -344,6 +530,7 @@ export async function GET() {
       // 3. Returns (5d, 21d, 63d)
       safe(query<{
         close: number;
+        ret_1d: string;
         ret_5d: string;
         ret_21d: string;
         ret_63d: string;
@@ -351,6 +538,7 @@ export async function GET() {
         `WITH ordered AS (
            SELECT event_date,
                   close,
+                  LAG(close,  1) OVER (ORDER BY event_date) as c1,
                   LAG(close,  5) OVER (ORDER BY event_date) as c5,
                   LAG(close, 21) OVER (ORDER BY event_date) as c21,
                   LAG(close, 63) OVER (ORDER BY event_date) as c63
@@ -358,6 +546,7 @@ export async function GET() {
            WHERE symbol = 'ZL' AND close IS NOT NULL
          )
          SELECT close,
+                ROUND(((close - c1)  / NULLIF(c1, 0)  * 100)::numeric, 2) as ret_1d,
                 ROUND(((close - c5)  / NULLIF(c5, 0)  * 100)::numeric, 2) as ret_5d,
                 ROUND(((close - c21) / NULLIF(c21, 0) * 100)::numeric, 2) as ret_21d,
                 ROUND(((close - c63) / NULLIF(c63, 0) * 100)::numeric, 2) as ret_63d
@@ -636,6 +825,8 @@ export async function GET() {
         `WITH latest_any AS (
            SELECT as_of_date::text                              AS as_of_date,
                   (features->>'weighted_action_score')::float8 AS weighted_action_score,
+                  (features->>'neural_signal')::float8         AS neural_signal,
+                  (features->>'neural_confidence')::float8     AS neural_confidence,
                   (features->>'action_velocity')::float8       AS action_velocity,
                   (features->>'action_acceleration')::float8   AS action_acceleration,
                   (features->>'total_actions_7d')::int         AS total_actions_7d,
@@ -654,6 +845,8 @@ export async function GET() {
                   ELSE 'latest_fallback'
                 END::text                                      AS selection_mode,
                 la.weighted_action_score,
+                la.neural_signal,
+                la.neural_confidence,
                 la.action_velocity,
                 la.action_acceleration,
                 la.total_actions_7d,
@@ -791,6 +984,38 @@ export async function GET() {
            OR content ILIKE '%oil price%' OR content ILIKE '%iran%' OR content ILIKE '%war%'
          )`,
       )),
+
+      // 19. China diplomacy/trade friction velocity (7d)
+      safe(query<{ count: number }>(
+        `SELECT COUNT(*)::int as count
+         FROM (
+           SELECT headline, content
+           FROM alt.policy_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.econ_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+
+           UNION ALL
+
+           SELECT headline, content
+           FROM alt.profarmer_news_event
+           WHERE event_date >= NOW() - INTERVAL '7 days'
+         ) n
+         WHERE (
+           (headline ILIKE '%china%' OR headline ILIKE '%beijing%' OR content ILIKE '%china%')
+           AND (
+             headline ILIKE '%trade%' OR headline ILIKE '%tariff%' OR headline ILIKE '%meeting%'
+             OR headline ILIKE '%talk%' OR headline ILIKE '%summit%' OR headline ILIKE '%deal%'
+             OR headline ILIKE '%import%' OR headline ILIKE '%export%' OR headline ILIKE '%buy%'
+             OR headline ILIKE '%purchase%' OR headline ILIKE '%retaliat%' OR headline ILIKE '%ban%'
+             OR content ILIKE '%soybean%' OR content ILIKE '%soy oil%' OR content ILIKE '%purchase%'
+           )
+         )`,
+      )),
     ]);
 
     const latestDailyPrice = priceResult[0];
@@ -846,6 +1071,10 @@ export async function GET() {
     const sentimentCounts = countSentimentRows(sentimentRatioResult);
     const iranWarNewsCount = iranWarNewsResult[0]?.count ?? 0;
     const macroNewsCount = macroNewsResult[0]?.count ?? 0;
+    const chinaTradeFrictionNewsCount =
+      chinaTradeFrictionNewsResult[0]?.count ?? 0;
+    const neuralSignal = trump?.neural_signal ?? null;
+    const neuralConfidence = trump?.neural_confidence ?? null;
     const [trumpActions, trumpConfirmationRows, trumpZlResponseRows]: [
       ExecutiveActionRow[],
       ConfirmationInputs[],
@@ -1129,6 +1358,12 @@ export async function GET() {
       crudeLatest ? toNumber(crudeLatest.ret_5d) : null,
       iranWarNewsCount,
       macroNewsCount,
+      returns ? toNumber(returns.ret_5d) : null,
+      returns ? toNumber(returns.ret_1d) : null,
+      rvol ? toNumber(rvol.rvol_21d) : null,
+      chinaTradeFrictionNewsCount,
+      neuralSignal,
+      neuralConfidence,
     );
 
     const cotOpenInterest = cot ? toNumber(cot.open_interest) : 0;
@@ -1205,6 +1440,7 @@ export async function GET() {
       },
 
       returns: {
+        ret_1d: returns ? Number(returns.ret_1d) : null,
         ret_5d: returns ? Number(returns.ret_5d) : null,
         ret_21d: returns ? Number(returns.ret_21d) : null,
         ret_63d: returns ? Number(returns.ret_63d) : null,

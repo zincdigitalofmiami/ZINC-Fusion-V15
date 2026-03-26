@@ -2,7 +2,7 @@
  * Policy Intelligence Briefing — AI analysis of the policy landscape.
  *
  * Uses OpenRouter GPT-OSS-120B with high reasoning to produce an actionable
- * 1-2 sentence briefing with threat level indicator and ZL price implication.
+ * paragraph briefing with threat level indicator and ZL price implication.
  *
  * Pattern follows /api/zl/context and /api/sentiment/narrative.
  */
@@ -81,8 +81,10 @@ function buildDeterministicBriefing(payload: PolicyBriefingRequest): string {
     score >= 55
       ? "Macro threat is skewed risk-up for ZL through oil shock, uncertainty, and geopolitical channels."
       : "Macro threat is contained, so ZL direction is currently more tied to crush and baseline demand flow.";
+  const inflation = payload.regime.inflationExpectation.toFixed(2);
+  const crude5d = (payload.regime.oilChange5d * 100).toFixed(1);
 
-  return `${indicator} — ${payload.regime.label}: ${topAgency} leads with ${topCount} recent actions and ${velocityText}. ${directional}`;
+  return `${indicator} — ${payload.regime.label}. ${topAgency} leads policy flow with ${topCount} recent actions and ${velocityText}, which is where near-term regulatory transmission into ZL is concentrated. Macro context remains uncertainty ${payload.regime.uncertaintyIndex.toFixed(0)}, VIX ${payload.regime.vix.toFixed(1)}, oil 5d ${crude5d}%, and inflation expectations ${inflation}%, so regime pressure should be treated as active rather than resolved. ${directional}`;
 }
 
 export async function POST(request: Request) {
@@ -182,7 +184,7 @@ ZL FOCUS: You decode macro + policy signals into ZL (CBOT soybean oil futures) p
 
 OUTPUT FORMAT — ONE PARAGRAPH ONLY:
 Start with exactly one indicator: 🟢 CLEAR | 🟡 WATCH | 🟠 ELEVATED | 🔴 CRITICAL — then a short headline.
-Follow with 1-2 sentences MAX: name the single most important policy action, trace its causal chain to ZL price, and give a directional call. No hedging. No "could" or "may." State what IS happening.`;
+Follow with a detailed paragraph of at least 4 sentences: name the single most important policy action, trace its causal chain to ZL price, explain why it dominates this specific card state, and give a directional call. No hedging. No "could" or "may." State what IS happening.`;
   const prompt = lines.join("\n");
 
   try {
@@ -192,7 +194,7 @@ Follow with 1-2 sentences MAX: name the single most important policy action, tra
         { role: "system", content: system },
         { role: "user", content: prompt },
       ],
-      maxTokens: 250,
+      maxTokens: 700,
       temperature: 0.0,
       reasoning: { effort: "high" },
     });

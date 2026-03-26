@@ -16,6 +16,8 @@ export interface TrumpFeatureRow {
   latest_any_as_of: string;
   selection_mode: "latest_valid" | "latest_fallback";
   weighted_action_score: number | null;
+  neural_signal: number | null;
+  neural_confidence: number | null;
   action_velocity: number | null;
   action_acceleration: number | null;
   total_actions_7d: number | null;

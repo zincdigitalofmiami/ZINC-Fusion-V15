@@ -55,22 +55,19 @@ Return valid JSON only with exactly this shape:
 Rules:
 - Base every sentence only on the payload provided.
 - Do not invent numbers, dates, or market facts.
-- Keep each narrative to at most 2 short sentences.
-- Keep the tone direct and analytical.
+- Write each non-null narrative as one detailed paragraph (minimum 4 sentences).
+- Hyper-tune each paragraph to the specific card and section:
+  - fearGreedNarrative: explain which Fear & Greed components are driving the score/zone and what that means for ZL risk posture.
+  - trumpEffectNarrative: explain policy flow, corroboration, and observed ZL response in the same paragraph.
+  - volatilityNarrative: explain VIX/OVX/realized vol regime and execution risk implications.
+- Mention concrete metric names and values from the payload whenever available.
+- Keep the tone direct, technical, and decision-useful.
 - If a section has no usable data, return null for that field.`;
 
-function trimToTwoSentences(value: string | null | undefined): string | null {
+function normalizeParagraph(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;
   const compact = value.replace(/\s+/g, " ").trim();
-  if (!compact) return null;
-
-  const matches = compact.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
-  if (!matches || matches.length === 0) return compact;
-
-  return matches
-    .slice(0, 2)
-    .map((part) => part.trim())
-    .join(" ");
+  return compact.length > 0 ? compact : null;
 }
 
 function normalizeForHash(value: unknown): unknown {
@@ -156,9 +153,9 @@ export async function buildNarrativeResponse(
     try {
       const text = await deps.completeText({
         model: MODEL_DRIVER_INTEL,
-        maxTokens: 220,
+        maxTokens: 700,
         temperature: 0.0,
-        reasoning: { effort: "low" },
+        reasoning: { effort: "high" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
@@ -175,9 +172,9 @@ export async function buildNarrativeResponse(
       }>(text);
 
       if (parsed) {
-        const aiFearGreed = trimToTwoSentences(parsed.fearGreedNarrative);
-        const aiTrumpEffect = trimToTwoSentences(parsed.trumpEffectNarrative);
-        const aiVolatility = trimToTwoSentences(parsed.volatilityNarrative);
+        const aiFearGreed = normalizeParagraph(parsed.fearGreedNarrative);
+        const aiTrumpEffect = normalizeParagraph(parsed.trumpEffectNarrative);
+        const aiVolatility = normalizeParagraph(parsed.volatilityNarrative);
         const hasUsableAiNarrative =
           aiFearGreed !== null || aiTrumpEffect !== null || aiVolatility !== null;
 

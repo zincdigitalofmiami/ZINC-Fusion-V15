@@ -802,89 +802,168 @@ export function ChrisTop4Drivers() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Market Intelligence Card */}
-      {data?.intelligence && (
-        <div className="mt-6 bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-1 h-6 rounded-full"
-                style={{ backgroundColor: data.intelligence.zlColor }}
-              />
-              <h4 className="text-lg font-semibold text-white">
-                {data.intelligence.headline}
-              </h4>
-              {data.intelligence.aiPowered && (
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-violet-500/20 text-violet-400 border border-violet-500/30">
-                  AI
-                </span>
-              )}
-            </div>
-            <span
-              className="px-3 py-1.5 rounded text-xs font-bold tracking-wider"
-              style={{
-                backgroundColor: `${data.intelligence.zlColor}20`,
-                color: data.intelligence.zlColor,
-                border: `1px solid ${data.intelligence.zlColor}40`,
-              }}
-            >
-              ZL {data.intelligence.zlOutlook}
+export function MarketIntelligenceRow() {
+  const [data, setData] = useState<MarketDriversResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadLastDelivered = useCallback((): MarketDriversResponse | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(MARKET_DRIVERS_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        payload?: MarketDriversResponse;
+        ts?: number;
+      };
+      if (!parsed?.payload || typeof parsed.ts !== "number") return null;
+      return parsed.payload;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const fetchIntelligence = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/market-drivers?v=${encodeURIComponent(AI_OUTPUT_VERSION)}`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as MarketDriversResponse;
+      if ((json as { error?: string }).error) {
+        throw new Error((json as { error?: string }).error);
+      }
+      setData(json);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          MARKET_DRIVERS_CACHE_KEY,
+          JSON.stringify({ payload: json, ts: Date.now() }),
+        );
+      }
+      setError(null);
+    } catch (e) {
+      console.error("Failed to fetch market intelligence row:", e);
+      const lastDelivered = loadLastDelivered();
+      if (lastDelivered) {
+        setData(lastDelivered);
+        setError(null);
+      } else {
+        setError("Unable to load market intelligence");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [loadLastDelivered]);
+
+  useEffect(() => {
+    const lastDelivered = loadLastDelivered();
+    if (lastDelivered) {
+      setData(lastDelivered);
+      setLoading(false);
+    }
+    fetchIntelligence();
+  }, [fetchIntelligence, loadLastDelivered]);
+
+  if (loading && !data) {
+    return (
+      <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8">
+        <div className="h-6 w-80 bg-slate-700/40 rounded animate-pulse mb-4" />
+        <div className="h-4 w-full bg-slate-700/30 rounded animate-pulse mb-2" />
+        <div className="h-4 w-5/6 bg-slate-700/30 rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  if (error && !data?.intelligence) {
+    return (
+      <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8 text-slate-500">
+        {error}
+      </div>
+    );
+  }
+
+  if (!data?.intelligence) return null;
+
+  return (
+    <div className="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 md:p-8">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-1 h-6 rounded-full"
+            style={{ backgroundColor: data.intelligence.zlColor }}
+          />
+          <h4 className="text-lg font-semibold text-white">
+            {data.intelligence.headline}
+          </h4>
+          {data.intelligence.aiPowered && (
+            <span className="px-2 py-0.5 rounded text-xs font-bold bg-violet-500/20 text-violet-400 border border-violet-500/30">
+              AI
             </span>
-          </div>
-
-          <p className="text-base text-slate-400 leading-relaxed mb-4">
-            {data.intelligence.summary}
-          </p>
-
-          {data.intelligence.tradingImplication && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <span className="text-xs text-slate-500 uppercase tracking-wider">
-                What This Means For You
-              </span>
-              <p className="text-base text-slate-300 mt-1">
-                {data.intelligence.tradingImplication}
-              </p>
-            </div>
-          )}
-
-          {data.intelligence.drivers &&
-            data.intelligence.drivers.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {data.intelligence.drivers.map((driver, idx) => (
-                  <div
-                    key={`${driver.label}-${idx}`}
-                    className="flex items-start gap-2 text-sm"
-                  >
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
-                        driver.outlook === "BEARISH" ||
-                        driver.outlook === "PRESSURE"
-                          ? "bg-red-500/20 text-red-400"
-                          : driver.outlook === "BULLISH" ||
-                              driver.outlook === "SUPPORTIVE" ||
-                              driver.outlook === "CALM"
-                            ? "bg-green-500/20 text-green-400"
-                            : driver.outlook === "MIXED" ||
-                                driver.outlook === "WATCH SUPPLY"
-                              ? "bg-amber-500/20 text-amber-400"
-                              : "bg-slate-500/20 text-slate-400"
-                      }`}
-                    >
-                      {driver.label}
-                    </span>
-                    <span className="text-slate-500">{driver.detail}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-          {data.intelligence.comprehensiveReport && (
-            <ComprehensiveReportSection
-              report={data.intelligence.comprehensiveReport}
-            />
           )}
         </div>
+        <span
+          className="px-3 py-1.5 rounded text-xs font-bold tracking-wider"
+          style={{
+            backgroundColor: `${data.intelligence.zlColor}20`,
+            color: data.intelligence.zlColor,
+            border: `1px solid ${data.intelligence.zlColor}40`,
+          }}
+        >
+          ZL {data.intelligence.zlOutlook}
+        </span>
+      </div>
+
+      <p className="text-base text-slate-400 leading-relaxed mb-4">
+        {data.intelligence.summary}
+      </p>
+
+      {data.intelligence.tradingImplication && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
+          <span className="text-xs text-slate-500 uppercase tracking-wider">
+            What This Means For You
+          </span>
+          <p className="text-base text-slate-300 mt-1">
+            {data.intelligence.tradingImplication}
+          </p>
+        </div>
+      )}
+
+      {data.intelligence.drivers && data.intelligence.drivers.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {data.intelligence.drivers.map((driver, idx) => (
+            <div
+              key={`${driver.label}-${idx}`}
+              className="flex items-start gap-2 text-sm"
+            >
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-bold shrink-0 ${
+                  driver.outlook === "BEARISH" || driver.outlook === "PRESSURE"
+                    ? "bg-red-500/20 text-red-400"
+                    : driver.outlook === "BULLISH" ||
+                        driver.outlook === "SUPPORTIVE" ||
+                        driver.outlook === "CALM"
+                      ? "bg-green-500/20 text-green-400"
+                      : driver.outlook === "MIXED" ||
+                          driver.outlook === "WATCH SUPPLY"
+                        ? "bg-amber-500/20 text-amber-400"
+                        : "bg-slate-500/20 text-slate-400"
+                }`}
+              >
+                {driver.label}
+              </span>
+              <span className="text-slate-500">{driver.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.intelligence.comprehensiveReport && (
+        <ComprehensiveReportSection report={data.intelligence.comprehensiveReport} />
       )}
     </div>
   );
