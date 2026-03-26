@@ -268,6 +268,32 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+const NUMERIC_STRING_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+
+function normalizeNumericStrings(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeNumericStrings(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nested]) => [
+        key,
+        normalizeNumericStrings(nested),
+      ]),
+    );
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!NUMERIC_STRING_PATTERN.test(trimmed)) return value;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : value;
+  }
+
+  return value;
+}
+
 function getTrendBadge(trend: string): {
   text: string;
   color: string;
@@ -478,8 +504,9 @@ export default function SentimentPage() {
       ]);
 
       if (metricsData) {
-        setMetrics(metricsData);
-        await fetchAnalysis(metricsData);
+        const normalizedMetrics = normalizeNumericStrings(metricsData) as MetricsData;
+        setMetrics(normalizedMetrics);
+        await fetchAnalysis(normalizedMetrics);
       }
       if (newsData) {
         setNews(newsData);
