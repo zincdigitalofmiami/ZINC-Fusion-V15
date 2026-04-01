@@ -3,10 +3,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("api/inngest route registration", () => {
-  it("registers the managed ZL intraday refresher", () => {
+  it("all functions are paused — functions array is empty", () => {
     const source = readFileSync(new URL("./route.ts", import.meta.url), "utf8");
 
-    expect(source).toMatch(/\bzl1mIntradayRefresh\b/);
-    expect(source).toMatch(/functions:\s*\[[\s\S]*zl1mIntradayRefresh/);
+    // Functions are intentionally paused to stop billing (PR #12).
+    // Imports are retained in route.ts for easy restoration.
+    expect(source).toMatch(/functions:\s*\[\s*\]/);
   });
 });
