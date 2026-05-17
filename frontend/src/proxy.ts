@@ -7,7 +7,6 @@
  *   /_next/*, /favicon*, /login, /
  *   /api/auth/*      — login / logout / check
  *   /api/health      — uptime probe
- *   /api/inngest     — Inngest webhook (has its own signing key)
  *
  * Auth-gated API routes return 401 JSON for unauthenticated requests.
  * Auth-gated pages redirect to /login.
@@ -21,7 +20,6 @@ const FULLY_PUBLIC_PREFIXES = [
   "/favicon",
   "/api/health",
   "/api/auth",
-  "/api/inngest", // Inngest handles its own auth via signing key
   "/login",
 ];
 

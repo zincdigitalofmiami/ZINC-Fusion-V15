@@ -4,9 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "functions": {
-    "src/app/api/inngest/route.ts": {
-      "maxDuration": 800
+  "crons": [
+    {
+      "path": "/api/market-drivers",
+      "schedule": "0 10 * * *"
     }
-  }
+  ]
 }

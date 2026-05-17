@@ -48,37 +48,6 @@ const nextConfig: NextConfig = {
     'ms',
   ],
 
-  // Force Vercel output file tracing to include the ENTIRE puppeteer-extra
-  // subtree including nested node_modules (merge-deep/node_modules/kind-of etc).
-  // Without this, turbopack marks packages external but Vercel's trace only
-  // includes top-level copies, not nested version-specific copies.
-  outputFileTracingIncludes: {
-    '/api/inngest': [
-      './node_modules/puppeteer-extra/**/*',
-      './node_modules/puppeteer-extra-plugin/**/*',
-      './node_modules/puppeteer-extra-plugin-stealth/**/*',
-      './node_modules/puppeteer-extra-plugin-user-preferences/**/*',
-      './node_modules/puppeteer-extra-plugin-user-data-dir/**/*',
-      './node_modules/merge-deep/**/*',
-      './node_modules/clone-deep/**/*',
-      './node_modules/is-plain-object/**/*',
-      './node_modules/kind-of/**/*',
-      './node_modules/shallow-clone/**/*',
-      './node_modules/for-own/**/*',
-      './node_modules/lazy-cache/**/*',
-      './node_modules/arr-union/**/*',
-      './node_modules/deepmerge/**/*',
-      './node_modules/puppeteer-core/**/*',
-      './node_modules/@sparticuz/**/*',
-      './node_modules/fs-extra/**/*',
-      './node_modules/graceful-fs/**/*',
-      './node_modules/jsonfile/**/*',
-      './node_modules/universalify/**/*',
-      './node_modules/rimraf/**/*',
-      './node_modules/debug/**/*',
-      './node_modules/ms/**/*',
-    ],
-  },
 }
 
 export default nextConfig

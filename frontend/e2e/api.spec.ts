@@ -15,7 +15,7 @@ import { test, expect, type APIRequestContext } from "@playwright/test";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const PUBLIC_API_PREFIXES = ["/api/health", "/api/auth", "/api/inngest"];
+const PUBLIC_API_PREFIXES = ["/api/health", "/api/auth"];
 const authedRequestContexts = new WeakSet<APIRequestContext>();
 
 function isPublicApiPath(path: string): boolean {
@@ -478,9 +478,6 @@ test.describe("Misc", () => {
     await getJson(request, "/api/refresh-drivers", [200, 503]);
   });
 
-  test("GET /api/inngest — introspection", async ({ request }) => {
-    await getJson(request, "/api/inngest", [200, 204, 500]);
-  });
 });
 
 test.describe("Protected pages", () => {
